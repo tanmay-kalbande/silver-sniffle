@@ -3,9 +3,9 @@
 // ============================================================================
 
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, FileText, Wand2, Clock, Type, RefreshCw, Copy, Check, ChevronDown } from 'lucide-react';
+import { Sparkles, Wand2, Clock, Type, RefreshCw, Copy, Check, Plus } from 'lucide-react';
 import { Article, Memory, WritingExample } from '../types';
-import { generateId, calculateReadingTime, countWords } from '../utils/helpers';
+import { calculateReadingTime, countWords } from '../utils/helpers';
 import { aiService } from '../services/aiService';
 
 interface ArticleGeneratorProps {
@@ -201,8 +201,8 @@ Write the complete article now. Be authentic and engaging.`;
                                         key={tone.id}
                                         onClick={() => setSelectedTone(tone.id)}
                                         className={`p-3 rounded-lg text-left transition-all ${selectedTone === tone.id
-                                                ? 'bg-white text-black'
-                                                : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
+                                            ? 'bg-white text-black'
+                                            : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
                                             }`}
                                     >
                                         <p className="font-medium text-sm">{tone.label}</p>
@@ -223,8 +223,8 @@ Write the complete article now. Be authentic and engaging.`;
                                         key={len.id}
                                         onClick={() => setSelectedLength(len.id)}
                                         className={`p-2.5 rounded-lg text-center transition-all ${selectedLength === len.id
-                                                ? 'bg-white text-black'
-                                                : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
+                                            ? 'bg-white text-black'
+                                            : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
                                             }`}
                                     >
                                         <p className="font-medium text-sm">{len.label}</p>
@@ -351,5 +351,3 @@ Write the complete article now. Be authentic and engaging.`;
     );
 }
 
-// Add missing Plus import
-import { Plus } from 'lucide-react';
