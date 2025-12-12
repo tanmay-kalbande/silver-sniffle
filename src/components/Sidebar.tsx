@@ -17,7 +17,7 @@ import {
     Search,
 } from 'lucide-react';
 import { Article, AppView, AIModel } from '../types';
-import { formatDate, truncateText } from '../utils/helpers';
+import { formatDate } from '../utils/helpers';
 
 interface SidebarProps {
     articles: Article[];
@@ -136,8 +136,8 @@ export function Sidebar({
                                 key={model.id}
                                 onClick={() => onModelChange(model.id)}
                                 className={`flex items-center gap-1.5 p-2 rounded-lg text-xs font-medium transition-all ${selectedModel === model.id
-                                        ? 'bg-white/10 text-white border border-white/20'
-                                        : 'text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-white border border-transparent'
+                                    ? 'bg-white/10 text-white border border-white/20'
+                                    : 'text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-white border border-transparent'
                                     }`}
                                 title={model.name}
                             >
@@ -181,8 +181,8 @@ export function Sidebar({
                                 onMouseEnter={() => setHoveredId(article.id)}
                                 onMouseLeave={() => setHoveredId(null)}
                                 className={`group relative flex items-center gap-2 ${isFolded ? 'justify-center p-2.5' : 'p-2.5'} rounded-lg cursor-pointer transition-colors ${currentArticle?.id === article.id
-                                        ? 'bg-white/10 text-white'
-                                        : 'hover:bg-white/5 text-[var(--color-text-primary)]'
+                                    ? 'bg-white/10 text-white'
+                                    : 'hover:bg-white/5 text-[var(--color-text-primary)]'
                                     }`}
                                 title={article.title || 'Untitled'}
                             >
@@ -224,8 +224,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('generator')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'generator'
-                                ? 'text-white bg-[var(--color-card)]'
-                                : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
+                            ? 'text-white bg-[var(--color-card)]'
+                            : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
                             }`}
                         title="Generator"
                     >
@@ -235,8 +235,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('memories')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'memories'
-                                ? 'text-white bg-[var(--color-card)]'
-                                : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
+                            ? 'text-white bg-[var(--color-card)]'
+                            : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
                             }`}
                         title="Memory"
                     >
@@ -246,8 +246,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('examples')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'examples'
-                                ? 'text-white bg-[var(--color-card)]'
-                                : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
+                            ? 'text-white bg-[var(--color-card)]'
+                            : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
                             }`}
                         title="Examples"
                     >
