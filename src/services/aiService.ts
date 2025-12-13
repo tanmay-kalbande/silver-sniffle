@@ -1,37 +1,73 @@
 // ============================================================================
-// AI SERVICE - Multi-Model Support with Human-Style Defaults
+// AI SERVICE - Enhanced with Better Human Writing Tone
 // ============================================================================
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AIModel, APISettings, Memory, WritingExample } from '../types';
 
-// Default system prompt for human-sounding writing
-const humanWritingPrompt = `You are a skilled human writer creating content for Medium articles. Your writing should:
+// Enhanced system prompt for truly human-sounding writing
+const humanWritingPrompt = `You are a skilled human writer creating engaging content. Your writing must be INDISTINGUISHABLE from a real person.
 
-1. SOUND HUMAN, NOT AI:
-   - Use natural conversational language
-   - Include contractions (I'm, you'll, we're, don't)
-   - Vary sentence lengths naturally
-   - Express genuine opinions and emotions
-   - Share personal anecdotes when appropriate
+🎯 CRITICAL: WRITE LIKE A REAL HUMAN, NOT AI
 
-2. AVOID THESE AI PATTERNS:
-   - Never start with "In today's..." or "In the world of..."
-   - Never use "Let's dive in" or "Let's explore"
-   - Avoid "Whether you're a... or a..."
-   - Skip "It's important to note that..."
-   - No excessive hedging or qualifiers
-   - Don't overuse transition words
+❌ NEVER USE THESE AI CLICHÉS:
+- "In today's world/landscape/digital age"
+- "Let's dive in/deep dive/explore"
+- "Whether you're a beginner or expert"
+- "It's important to note/understand"
+- "In conclusion/To summarize"
+- "At the end of the day"
+- Excessive transition words (Moreover, Furthermore, Additionally)
+- Generic calls-to-action
 
-3. BE ENGAGING:
-   - Start with a hook that grabs attention
-   - Use specific examples and stories
-   - Be direct and confident
-   - End with impact, not generic calls to action
+✅ HUMAN WRITING PRINCIPLES:
 
-You write like a real person sharing their expertise, not like an AI generating content.`;
+1. CONVERSATIONAL TONE:
+   - Write like you're talking to a friend over coffee
+   - Use contractions naturally (I'm, you'll, we're, don't, can't)
+   - Ask rhetorical questions
+   - Use "you" to address readers directly
+   - Include personal pronouns (I, we, my)
 
-// OpenAI-compatible streaming response
+2. AUTHENTIC VOICE:
+   - Share opinions confidently (no hedging with "might" or "perhaps" everywhere)
+   - Use specific examples from real life
+   - Include occasional humor or wit
+   - Show personality and emotion
+   - Be direct - cut filler words
+
+3. NATURAL RHYTHM:
+   - Vary sentence length dramatically
+   - Some short. Some medium. And some that flow longer with multiple connected thoughts.
+   - Start sentences differently (avoid repetitive patterns)
+   - Use fragments for emphasis. Like this.
+
+4. ENGAGING HOOKS:
+   - Start with a bold statement, question, or mini-story
+   - NO "In this article, we'll explore..."
+   - Jump straight into the interesting part
+   - Create curiosity immediately
+
+5. REAL EXAMPLES:
+   - Use specific numbers, names, scenarios
+   - Include relatable situations readers have experienced
+   - Share actual insights, not generic advice
+   - Make examples vivid and memorable
+
+6. STRONG ENDINGS:
+   - End with impact, not summary
+   - Leave readers with one powerful takeaway
+   - NO "So there you have it" or "I hope you found this helpful"
+   - Call to reflection, not just action
+
+7. FORMATTING:
+   - Short paragraphs (2-4 sentences max)
+   - Use subheadings that create curiosity
+   - Bold key phrases sparingly
+   - Include occasional one-sentence paragraphs for punch
+
+Remember: The best writing doesn't announce itself. It flows naturally, keeps readers engaged, and sounds like one human sharing insights with another.`;
+
 async function* streamOpenAICompatResponse(
     url: string,
     apiKey: string,
@@ -52,7 +88,7 @@ async function* streamOpenAICompatResponse(
                 ...messages,
             ],
             stream: true,
-            temperature: 0.8,
+            temperature: 0.85, // Slightly higher for more natural variation
             max_tokens: 8000,
         }),
     });
@@ -123,18 +159,20 @@ class AiService {
         // Add memories if available
         if (this.memories.length > 0) {
             prompt += '\n\n--- AUTHOR CONTEXT ---\n';
+            prompt += 'Use this information naturally in your writing:\n';
             this.memories.forEach((m) => {
-                prompt += `[${m.category.toUpperCase()}] ${m.title}: ${m.content}\n`;
+                prompt += `• ${m.content}\n`;
             });
         }
 
         // Add writing examples if available
         if (this.examples.length > 0) {
-            prompt += '\n\n--- WRITING STYLE EXAMPLES ---\n';
-            prompt += 'Match this writing style, tone, and vocabulary:\n\n';
+            prompt += '\n\n--- WRITING STYLE TO MATCH ---\n';
+            prompt += 'Study this writing style carefully and replicate it:\n\n';
             this.examples.forEach((e, i) => {
-                prompt += `Example ${i + 1}: "${e.content.slice(0, 500)}..."\n\n`;
+                prompt += `Example ${i + 1}:\n"${e.content.slice(0, 600)}..."\n\n`;
             });
+            prompt += 'Match this exact tone, vocabulary, sentence structure, and personality.';
         }
 
         return prompt;
@@ -170,18 +208,25 @@ class AiService {
             case 'google': {
                 if (!this.settings.googleApiKey) throw new Error('Google API key not set');
                 const genAI = new GoogleGenerativeAI(this.settings.googleApiKey);
-                const model = genAI.getGenerativeModel({ model: modelId });
+                const model = genAI.getGenerativeModel({ 
+                    model: modelId,
+                    generationConfig: {
+                        temperature: 0.85,
+                        topP: 0.95,
+                        topK: 40,
+                        maxOutputTokens: 8000,
+                    }
+                });
 
                 const chat = model.startChat({
                     history: messages.slice(0, -1).map((m) => ({
                         role: m.role === 'assistant' ? 'model' : 'user',
                         parts: [{ text: m.content }],
                     })),
-                    generationConfig: { temperature: 0.8, maxOutputTokens: 8000 },
                 });
 
                 const lastMessage = messages[messages.length - 1];
-                const fullMessage = `${systemPrompt}\n\n${lastMessage.content}`;
+                const fullMessage = `${systemPrompt}\n\n---\n\n${lastMessage.content}`;
                 const result = await chat.sendMessageStream(fullMessage);
 
                 for await (const chunk of result.stream) {
