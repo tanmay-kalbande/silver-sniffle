@@ -31,6 +31,9 @@ function App() {
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Check if API key is configured
+  const hasApiKey = !!(settings.googleApiKey || settings.mistralApiKey || settings.cerebrasApiKey || settings.zhipuApiKey);
+
   // Load data on mount
   useEffect(() => {
     const loadedArticles = storageUtils.getArticles();
@@ -90,7 +93,6 @@ function App() {
 
   // Handlers
   const handleNewArticle = useCallback(() => {
-    // Create a new empty article
     const newArticle: Article = {
       id: generateId(),
       title: '',
@@ -114,7 +116,6 @@ function App() {
   const handleDeleteArticle = useCallback((id: string) => {
     setArticles((prev) => {
       const remaining = prev.filter((a) => a.id !== id);
-      // If deleted the current article, clear selection
       if (currentArticle?.id === id) {
         setCurrentArticle(remaining.length > 0 ? remaining[0] : null);
       }
@@ -124,7 +125,6 @@ function App() {
 
   const handleUpdateArticle = useCallback((updates: Partial<Article>) => {
     if (!currentArticle) {
-      // Create new article if none exists
       const newArticle: Article = {
         id: generateId(),
         title: '',
@@ -177,6 +177,7 @@ function App() {
             examples={examples}
             onUpdateArticle={handleUpdateArticle}
             onNewArticle={handleNewArticle}
+            hasApiKey={hasApiKey}
           />
         );
     }
