@@ -96,6 +96,8 @@ export function ArticleGenerator({
             comprehensive: '3000+ words with multiple sections',
         };
 
+        const imageCount = selectedLength === 'short' ? 1 : selectedLength === 'medium' ? 2 : selectedLength === 'long' ? 3 : 4;
+
         const prompt = `Write a complete Medium article about: "${topic}"
 
 REQUIREMENTS:
@@ -110,9 +112,20 @@ FORMAT:
 - Start with a compelling hook
 - Use markdown formatting with ## and ### headers
 - End with a strong conclusion
+
+IMAGE PROMPTS (VERY IMPORTANT):
+- Include ${imageCount} image prompt(s) at appropriate places in the article
+- Format each image prompt in a special block like this:
+
+> 🖼️ **IMAGE PROMPT:** [Detailed, vivid description for an AI image generator. Include style, mood, colors, composition. Make it specific enough for DALL-E or Midjourney to generate a compelling image that matches the article content. 2-3 sentences.]
+
+- Place image prompts after key sections where a visual would enhance understanding
+- Image prompts should be relevant to the section content
+- Make prompts specific and visually descriptive
+
 ${memoryContext}${exampleContext}
 
-Write the complete article now.`;
+Write the complete article now with image prompts included.`;
 
         try {
             let fullContent = '';
