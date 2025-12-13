@@ -1,10 +1,11 @@
 // ============================================================================
-// SETTINGS MODAL - Compact with Tabs (API Keys & Model)
+// SETTINGS MODAL - With API Key Validation & Connection Testing
 // ============================================================================
 
 import { useState } from 'react';
-import { X, Key, Cpu, Eye, EyeOff, ExternalLink, Check } from 'lucide-react';
+import { X, Key, Cpu, Eye, EyeOff, ExternalLink, Check, AlertCircle, Loader } from 'lucide-react';
 import { APISettings, AIModel } from '../types';
+import { aiService } from '../services/aiService';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -14,6 +15,7 @@ interface SettingsModalProps {
 }
 
 type SettingsTab = 'keys' | 'model';
+type TestStatus = 'idle' | 'testing' | 'success' | 'error';
 
 const models: { id: AIModel; name: string; provider: string }[] = [
     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
@@ -27,11 +29,43 @@ const models: { id: AIModel; name: string; provider: string }[] = [
     { id: 'zai-glm-4.6', name: 'ZAI GLM 4.6', provider: 'Cerebras' },
 ];
 
+function validateApiKey(key: string, provider: string): { valid: boolean; message?: string } {
+    if (!key.trim()) {
+        return { valid: false, message: 'API key is required' };
+    }
+
+    switch (provider) {
+        case 'google':
+            if (!key.startsWith('AIza')) {
+                return { valid: false, message: 'Google API keys should start with "AIza"' };
+            }
+            if (key.length < 30) {
+                return { valid: false, message: 'Google API key is too short' };
+            }
+            break;
+        case 'mistral':
+            if (key.length < 20) {
+                return { valid: false, message: 'Mistral API key seems too short' };
+            }
+            break;
+        case 'cerebras':
+        case 'zhipu':
+            if (key.length < 10) {
+                return { valid: false, message: 'API key seems too short' };
+            }
+            break;
+    }
+
+    return { valid: true };
+}
+
 export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsModalProps) {
     const [localSettings, setLocalSettings] = useState<APISettings>(settings);
     const [activeTab, setActiveTab] = useState<SettingsTab>('keys');
     const [showKey, setShowKey] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
+    const [testStatus, setTestStatus] = useState<TestStatus>('idle');
+    const [testError, setTestError] = useState<string>('');
 
     if (!isOpen) return null;
 
@@ -44,12 +78,55 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
         }, 1000);
     };
 
+    const testConnection = async () => {
+        setTestStatus('testing');
+        setTestError('');
+
+        try {
+            // Temporarily update AI service with test settings
+            const originalSettings = { ...settings };
+            aiService.updateSettings(localSettings);
+
+            const stream = aiService.generateStreamingResponse([
+                { role: 'user', content: 'Reply with just "OK" if you can read this.' }
+            ]);
+
+            let response = '';
+            for await (const chunk of stream) {
+                response += chunk;
+                if (response.toLowerCase().includes('ok')) {
+                    break;
+                }
+            }
+
+            // Restore original settings
+            aiService.updateSettings(originalSettings);
+
+            if (response.toLowerCase().includes('ok')) {
+                setTestStatus('success');
+                setTimeout(() => setTestStatus('idle'), 3000);
+            } else {
+                setTestStatus('error');
+                setTestError('Unexpected response from API');
+            }
+        } catch (error) {
+            setTestStatus('error');
+            const errorMessage = error instanceof Error ? error.message : 'Connection failed';
+            setTestError(errorMessage);
+            
+            // Restore original settings
+            aiService.updateSettings(settings);
+        }
+    };
+
     const apiKeyFields = [
-        { key: 'googleApiKey' as const, label: 'Google AI', url: 'https://aistudio.google.com/apikey' },
-        { key: 'mistralApiKey' as const, label: 'Mistral AI', url: 'https://console.mistral.ai/api-keys' },
-        { key: 'cerebrasApiKey' as const, label: 'Cerebras', url: 'https://cloud.cerebras.ai/' },
-        { key: 'zhipuApiKey' as const, label: 'ZhipuAI', url: 'https://open.bigmodel.cn/' },
+        { key: 'googleApiKey' as const, label: 'Google AI', url: 'https://aistudio.google.com/apikey', provider: 'google' },
+        { key: 'mistralApiKey' as const, label: 'Mistral AI', url: 'https://console.mistral.ai/api-keys', provider: 'mistral' },
+        { key: 'cerebrasApiKey' as const, label: 'Cerebras', url: 'https://cloud.cerebras.ai/', provider: 'cerebras' },
+        { key: 'zhipuApiKey' as const, label: 'ZhipuAI', url: 'https://open.bigmodel.cn/', provider: 'zhipu' },
     ];
+
+    const hasAnyKey = Object.values(localSettings).some(val => typeof val === 'string' && val.trim().length > 0);
 
     return (
         <div className="modal-backdrop" onClick={onClose}>
@@ -85,49 +162,109 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
                     {/* API Keys Tab */}
                     {activeTab === 'keys' && (
                         <div className="space-y-4">
-                            {apiKeyFields.map((field) => (
-                                <div key={field.key}>
-                                    <label className="flex items-center justify-between text-sm font-medium mb-2">
-                                        {field.label}
-                                        <a
-                                            href={field.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
-                                        >
-                                            Get key <ExternalLink className="w-3 h-3" />
-                                        </a>
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type={showKey === field.key ? 'text' : 'password'}
-                                            value={localSettings[field.key]}
-                                            onChange={(e) => setLocalSettings((s) => ({ ...s, [field.key]: e.target.value }))}
-                                            placeholder="Enter API key"
-                                            className="input-field pr-10"
-                                        />
-                                        <button
-                                            onClick={() => setShowKey(showKey === field.key ? null : field.key)}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 btn-icon p-1"
-                                        >
-                                            {showKey === field.key ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                        </button>
+                            {/* Info Box */}
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                                <p className="text-xs text-blue-300">
+                                    💡 Add at least one API key to start generating articles. All keys are stored locally in your browser.
+                                </p>
+                            </div>
+
+                            {apiKeyFields.map((field) => {
+                                const validation = localSettings[field.key] 
+                                    ? validateApiKey(localSettings[field.key], field.provider)
+                                    : { valid: true };
+
+                                return (
+                                    <div key={field.key}>
+                                        <label className="flex items-center justify-between text-sm font-medium mb-2">
+                                            {field.label}
+                                            <a
+                                                href={field.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+                                            >
+                                                Get key <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showKey === field.key ? 'text' : 'password'}
+                                                value={localSettings[field.key]}
+                                                onChange={(e) => setLocalSettings((s) => ({ ...s, [field.key]: e.target.value }))}
+                                                placeholder="Enter API key"
+                                                className={`input-field pr-10 ${!validation.valid ? 'border-red-500/50' : ''}`}
+                                            />
+                                            <button
+                                                onClick={() => setShowKey(showKey === field.key ? null : field.key)}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 btn-icon p-1"
+                                            >
+                                                {showKey === field.key ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        {!validation.valid && validation.message && (
+                                            <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                                                <AlertCircle className="w-3 h-3" />
+                                                {validation.message}
+                                            </p>
+                                        )}
                                     </div>
+                                );
+                            })}
+
+                            {/* Connection Test */}
+                            {hasAnyKey && (
+                                <div className="pt-2">
+                                    <button
+                                        onClick={testConnection}
+                                        disabled={testStatus === 'testing'}
+                                        className={`btn-secondary w-full ${testStatus === 'success' ? 'border-green-500/50 text-green-400' : testStatus === 'error' ? 'border-red-500/50 text-red-400' : ''}`}
+                                    >
+                                        {testStatus === 'testing' && (
+                                            <>
+                                                <Loader className="w-4 h-4 animate-spin" />
+                                                Testing Connection...
+                                            </>
+                                        )}
+                                        {testStatus === 'success' && (
+                                            <>
+                                                <Check className="w-4 h-4" />
+                                                Connection Successful!
+                                            </>
+                                        )}
+                                        {testStatus === 'error' && (
+                                            <>
+                                                <AlertCircle className="w-4 h-4" />
+                                                Connection Failed
+                                            </>
+                                        )}
+                                        {testStatus === 'idle' && (
+                                            <>
+                                                Test Connection
+                                            </>
+                                        )}
+                                    </button>
+                                    {testError && (
+                                        <p className="text-xs text-red-400 mt-2">{testError}</p>
+                                    )}
                                 </div>
-                            ))}
+                            )}
                         </div>
                     )}
 
                     {/* Model Tab */}
                     {activeTab === 'model' && (
                         <div className="space-y-2">
+                            <p className="text-xs text-[var(--color-text-muted)] mb-3">
+                                Select the AI model to use for generating articles. Different models have different strengths and response times.
+                            </p>
                             {models.map((model) => (
                                 <button
                                     key={model.id}
                                     onClick={() => setLocalSettings((s) => ({ ...s, selectedModel: model.id }))}
                                     className={`w-full p-3 rounded-lg text-left transition-all flex items-center justify-between ${localSettings.selectedModel === model.id
-                                            ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
-                                            : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
+                                        ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                                        : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
                                         }`}
                                 >
                                     <span className="font-medium text-sm">{model.name}</span>
@@ -151,7 +288,7 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
                                 Saved!
                             </>
                         ) : (
-                            'Save'
+                            'Save Settings'
                         )}
                     </button>
                 </div>
