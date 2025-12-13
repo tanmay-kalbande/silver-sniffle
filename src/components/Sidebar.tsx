@@ -1,5 +1,5 @@
 // ============================================================================
-// SIDEBAR - Matching Cosmic Glass Style
+// SIDEBAR - Clean Design (no model selector - it's in settings)
 // ============================================================================
 
 import { useState, useMemo } from 'react';
@@ -16,7 +16,7 @@ import {
     ChevronRight,
     Search,
 } from 'lucide-react';
-import { Article, AppView, AIModel } from '../types';
+import { Article, AppView } from '../types';
 import { formatDate } from '../utils/helpers';
 
 interface SidebarProps {
@@ -25,27 +25,14 @@ interface SidebarProps {
     currentView: AppView;
     isOpen: boolean;
     isFolded: boolean;
-    selectedModel: AIModel;
     onSelectArticle: (article: Article) => void;
     onNewArticle: () => void;
     onDeleteArticle: (id: string) => void;
     onChangeView: (view: AppView) => void;
     onOpenSettings: () => void;
-    onModelChange: (model: AIModel) => void;
     onClose: () => void;
     onToggleFold: () => void;
 }
-
-const models: { id: AIModel; name: string; icon: string }[] = [
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', icon: '✨' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', icon: '🌟' },
-    { id: 'gpt-oss-120b', name: 'GPT OSS 120B', icon: '🚀' },
-    { id: 'mistral-large-latest', name: 'Mistral Large', icon: '🌊' },
-    { id: 'mistral-medium-latest', name: 'Mistral Medium', icon: '💨' },
-    { id: 'glm-4.5-flash', name: 'GLM 4.5 Flash', icon: '⚡' },
-    { id: 'qwen-3-235b-a22b-instruct-2507', name: 'Qwen 235B', icon: '🔮' },
-    { id: 'zai-glm-4.6', name: 'ZAI GLM 4.6', icon: '🧠' },
-];
 
 export function Sidebar({
     articles,
@@ -53,13 +40,11 @@ export function Sidebar({
     currentView,
     isOpen,
     isFolded,
-    selectedModel,
     onSelectArticle,
     onNewArticle,
     onDeleteArticle,
     onChangeView,
     onOpenSettings,
-    onModelChange,
     onClose,
     onToggleFold,
 }: SidebarProps) {
@@ -84,8 +69,8 @@ export function Sidebar({
                 <div className="flex items-center justify-between mb-3">
                     {!isFolded && (
                         <a href="/" className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
-                                <PenLine className="w-4 h-4 text-black" />
+                            <div className="w-7 h-7 rounded-lg bg-[var(--color-accent)] flex items-center justify-center">
+                                <PenLine className="w-4 h-4 text-[var(--color-accent-text)]" />
                             </div>
                             <span className="font-semibold">Article Gen</span>
                         </a>
@@ -93,21 +78,21 @@ export function Sidebar({
                     <div className="flex items-center gap-1">
                         <button
                             onClick={onOpenSettings}
-                            className="p-2 text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-card)] rounded-lg"
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)] rounded-lg transition-colors"
                             title="Settings"
                         >
                             <Settings className="w-5 h-5" />
                         </button>
                         <button
                             onClick={onToggleFold}
-                            className="p-2 text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-card)] rounded-lg hidden lg:block"
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)] rounded-lg hidden lg:block transition-colors"
                             title={isFolded ? 'Expand' : 'Collapse'}
                         >
                             {isFolded ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-2 text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-card)] rounded-lg lg:hidden"
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)] rounded-lg lg:hidden transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -117,37 +102,12 @@ export function Sidebar({
                 {/* New Article Button */}
                 <button
                     onClick={onNewArticle}
-                    className={`w-full flex items-center ${isFolded ? 'justify-center' : 'justify-start'} gap-2 px-3 py-2.5 bg-white hover:bg-gray-200 rounded-lg text-black font-semibold transition-all`}
+                    className={`w-full flex items-center ${isFolded ? 'justify-center' : 'justify-start'} gap-2 px-3 py-2.5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-lg text-[var(--color-accent-text)] font-semibold transition-all`}
                 >
                     <Plus className="w-4 h-4" />
                     {!isFolded && <span>New Article</span>}
                 </button>
             </div>
-
-            {/* Model Selector */}
-            {currentView === 'generator' && !isFolded && (
-                <div className="p-3 border-b border-[var(--color-border)]">
-                    <p className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-2">
-                        AI Model
-                    </p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                        {models.map((model) => (
-                            <button
-                                key={model.id}
-                                onClick={() => onModelChange(model.id)}
-                                className={`flex items-center gap-1.5 p-2 rounded-lg text-xs font-medium transition-all ${selectedModel === model.id
-                                    ? 'bg-white/10 text-white border border-white/20'
-                                    : 'text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-white border border-transparent'
-                                    }`}
-                                title={model.name}
-                            >
-                                <span>{model.icon}</span>
-                                <span className="truncate">{model.name.split(' ').slice(0, 2).join(' ')}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* Search */}
             {!isFolded && (
@@ -159,7 +119,7 @@ export function Sidebar({
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search articles..."
-                            className="w-full bg-[var(--color-card)] border border-transparent focus:border-[var(--color-border)] rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none"
+                            className="w-full bg-[var(--color-card)] border border-transparent focus:border-[var(--color-border)] rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none transition-colors"
                         />
                     </div>
                 </div>
@@ -181,8 +141,8 @@ export function Sidebar({
                                 onMouseEnter={() => setHoveredId(article.id)}
                                 onMouseLeave={() => setHoveredId(null)}
                                 className={`group relative flex items-center gap-2 ${isFolded ? 'justify-center p-2.5' : 'p-2.5'} rounded-lg cursor-pointer transition-colors ${currentArticle?.id === article.id
-                                    ? 'bg-white/10 text-white'
-                                    : 'hover:bg-white/5 text-[var(--color-text-primary)]'
+                                        ? 'bg-white/10 text-[var(--color-text-primary)]'
+                                        : 'hover:bg-white/5 text-[var(--color-text-primary)]'
                                     }`}
                                 title={article.title || 'Untitled'}
                             >
@@ -205,7 +165,7 @@ export function Sidebar({
                                                     e.stopPropagation();
                                                     onDeleteArticle(article.id);
                                                 }}
-                                                className="p-1 rounded hover:bg-red-500/20 text-[var(--color-text-muted)] hover:text-red-400"
+                                                className="p-1 rounded hover:bg-red-500/20 text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </button>
@@ -224,8 +184,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('generator')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'generator'
-                            ? 'text-white bg-[var(--color-card)]'
-                            : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
+                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Generator"
                     >
@@ -235,8 +195,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('memories')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'memories'
-                            ? 'text-white bg-[var(--color-card)]'
-                            : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
+                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Memory"
                     >
@@ -246,8 +206,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('examples')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'examples'
-                            ? 'text-white bg-[var(--color-card)]'
-                            : 'text-gray-400 hover:text-white hover:bg-[var(--color-card)]'
+                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Examples"
                     >
