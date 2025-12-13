@@ -1,12 +1,12 @@
 // ============================================================================
-// ARTICLE GENERATOR - Main Generation UI with Welcome Screen
+// ARTICLE GENERATOR - Enhanced with Export, Templates, Error Handling
 // ============================================================================
 
 import { useState, useRef, useEffect } from 'react';
-import { Wand2, Clock, Type, RefreshCw, Copy, Check, Plus, Edit3, Eye } from 'lucide-react';
+import { Wand2, Clock, Type, RefreshCw, Copy, Check, Plus, Edit3, Eye, Download, AlertCircle, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Article, Memory, WritingExample } from '../types';
+import { Article, Memory, WritingExample, ArticleTemplate } from '../types';
 import { calculateReadingTime, countWords } from '../utils/helpers';
 import { aiService } from '../services/aiService';
 
@@ -26,6 +26,51 @@ const lengthOptions = [
     { id: 'comprehensive', label: 'Full', words: '~3000+' },
 ];
 
+const templates: ArticleTemplate[] = [
+    {
+        id: 'none',
+        name: 'No Template',
+        description: 'Free-form article',
+        structure: '',
+        promptSuffix: ''
+    },
+    {
+        id: 'how-to',
+        name: 'How-To Guide',
+        description: 'Step-by-step tutorial',
+        structure: 'Problem → Solution → Steps → Results',
+        promptSuffix: '\n\nSTRUCTURE: Start with the problem your readers face, explain your solution, provide clear actionable steps, and show expected results with examples.'
+    },
+    {
+        id: 'listicle',
+        name: 'List Article',
+        description: 'Numbered or bulleted list',
+        structure: '7-10 items with explanations',
+        promptSuffix: '\n\nFORMAT: Create a list of 7-10 items. Each item should have a clear heading and 2-3 sentences of explanation with specific examples.'
+    },
+    {
+        id: 'opinion',
+        name: 'Opinion Piece',
+        description: 'Personal perspective',
+        structure: 'Hook → Argument → Evidence → Conclusion',
+        promptSuffix: '\n\nTONE: Write with a strong personal voice. Include your unique perspective and back up claims with real examples and personal experiences.'
+    },
+    {
+        id: 'case-study',
+        name: 'Case Study',
+        description: 'Real-world example analysis',
+        structure: 'Background → Challenge → Solution → Results → Lessons',
+        promptSuffix: '\n\nINCLUDE: Specific data points, real quotes if possible, before/after comparisons, and actionable takeaways readers can apply.'
+    },
+    {
+        id: 'deep-dive',
+        name: 'Deep Dive',
+        description: 'Comprehensive analysis',
+        structure: 'Overview → Details → Implications → Future',
+        promptSuffix: '\n\nDEPTH: Provide thorough analysis with multiple perspectives, data-backed insights, and explore implications. Include expert viewpoints.'
+    },
+];
+
 export function ArticleGenerator({
     article,
     memories,
@@ -36,11 +81,16 @@ export function ArticleGenerator({
 }: ArticleGeneratorProps) {
     const [topic, setTopic] = useState('');
     const [selectedLength, setSelectedLength] = useState('medium');
+    const [selectedTemplate, setSelectedTemplate] = useState('none');
     const [isGenerating, setIsGenerating] = useState(false);
     const [streamedContent, setStreamedContent] = useState('');
     const [copied, setCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const [wordGoal, setWordGoal] = useState<number | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+    const exportMenuRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll during generation
     useEffect(() => {
@@ -48,6 +98,17 @@ export function ArticleGenerator({
             contentRef.current.scrollTop = contentRef.current.scrollHeight;
         }
     }, [streamedContent, isGenerating]);
+
+    // Close export menu when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+                setShowExportMenu(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Get greeting message based on time of day
     const getGreeting = () => {
@@ -57,11 +118,26 @@ export function ArticleGenerator({
         return 'Good Evening';
     };
 
+    // Set word goal based on length
+    useEffect(() => {
+        const goals = {
+            short: 600,
+            medium: 1100,
+            long: 2000,
+            comprehensive: 3000,
+        };
+        setWordGoal(goals[selectedLength as keyof typeof goals] || null);
+    }, [selectedLength]);
+
     const handleGenerate = async () => {
-        if (!topic.trim()) return;
+        if (!topic.trim()) {
+            setError('Please enter a topic for your article');
+            return;
+        }
 
         setIsGenerating(true);
         setStreamedContent('');
+        setError(null);
 
         let memoryContext = '';
         if (memories.length > 0) {
@@ -88,6 +164,11 @@ export function ArticleGenerator({
 
         const imageCount = selectedLength === 'short' ? 1 : selectedLength === 'medium' ? 2 : selectedLength === 'long' ? 3 : 4;
 
+        const template = templates.find(t => t.id === selectedTemplate);
+        const templateInfo = template && template.id !== 'none' 
+            ? `\n\nTEMPLATE: ${template.name}\n${template.structure}\n${template.promptSuffix}` 
+            : '';
+
         const prompt = `Write a complete Medium article about: "${topic}"
 
 REQUIREMENTS:
@@ -112,7 +193,6 @@ IMAGE PROMPTS (VERY IMPORTANT):
 - Image prompts should be relevant to the section content
 - Make prompts specific and visually descriptive
 
-
 VIRAL TOOLKIT (AT THE END):
 - Add a separator line (---)
 - Add a "Viral Toolkit" section with:
@@ -120,7 +200,7 @@ VIRAL TOOLKIT (AT THE END):
   2. 5 SEO Tags (High volume keywords)
   3. Meta Description (150 chars, SEO optimized)
 
-${memoryContext}${exampleContext}
+${memoryContext}${exampleContext}${templateInfo}
 
 Write the complete article now with image prompts and viral toolkit included.`;
 
@@ -175,11 +255,24 @@ Write the complete article now with image prompts and viral toolkit included.`;
                 content: articleContent,
                 topic,
                 length: selectedLength,
+                template: selectedTemplate !== 'none' ? selectedTemplate : undefined,
             });
 
         } catch (error) {
             console.error('Generation failed:', error);
-            setStreamedContent(`Error: ${error instanceof Error ? error.message : 'Failed to generate. Check your API keys in Settings.'}`);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            
+            if (errorMessage.includes('API key')) {
+                setError('Invalid API key. Please check your settings and try again.');
+            } else if (errorMessage.includes('quota') || errorMessage.includes('limit')) {
+                setError('API quota exceeded. Please check your API plan or try a different model.');
+            } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                setError('Network error. Please check your internet connection and try again.');
+            } else {
+                setError(`Generation failed: ${errorMessage}`);
+            }
+            
+            setStreamedContent('');
         } finally {
             setIsGenerating(false);
         }
@@ -192,6 +285,109 @@ Write the complete article now with image prompts and viral toolkit included.`;
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }
+    };
+
+    const exportArticle = (format: 'markdown' | 'html' | 'txt') => {
+        if (!article) return;
+
+        let content = '';
+        let filename = '';
+        let mimeType = '';
+
+        const sanitizedTitle = article.title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+
+        switch (format) {
+            case 'markdown':
+                content = `# ${article.title}\n\n${article.subtitle ? `*${article.subtitle}*\n\n` : ''}${article.content}`;
+                filename = `${sanitizedTitle}.md`;
+                mimeType = 'text/markdown';
+                break;
+            case 'html':
+                content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${article.title}</title>
+    <style>
+        body {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 0.2em;
+            line-height: 1.2;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+            font-style: italic;
+            margin-bottom: 2em;
+        }
+        .content {
+            font-size: 1.1em;
+        }
+        h2 {
+            font-size: 1.8em;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        h3 {
+            font-size: 1.4em;
+            margin-top: 1.2em;
+            margin-bottom: 0.4em;
+        }
+        p {
+            margin-bottom: 1em;
+        }
+        blockquote {
+            border-left: 4px solid #3b82f6;
+            padding-left: 1em;
+            margin-left: 0;
+            color: #666;
+            font-style: italic;
+        }
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>${article.title}</h1>
+    ${article.subtitle ? `<p class="subtitle">${article.subtitle}</p>` : ''}
+    <div class="content">
+        ${article.content.split('\n\n').map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`).join('\n')}
+    </div>
+</body>
+</html>`;
+                filename = `${sanitizedTitle}.html`;
+                mimeType = 'text/html';
+                break;
+            case 'txt':
+                content = `${article.title}\n${article.subtitle ? article.subtitle + '\n' : ''}\n${article.content}`;
+                filename = `${sanitizedTitle}.txt`;
+                mimeType = 'text/plain';
+                break;
+        }
+
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setShowExportMenu(false);
     };
 
     // Welcome Screen (no article selected or empty)
@@ -224,6 +420,19 @@ Write the complete article now with image prompts and viral toolkit included.`;
                         </p>
                     </div>
 
+                    {/* Error Display */}
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm text-red-400">{error}</p>
+                            </div>
+                            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Generation Form */}
                     <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6 space-y-5">
                         {/* Topic Input */}
@@ -239,6 +448,29 @@ Write the complete article now with image prompts and viral toolkit included.`;
                                 rows={2}
                                 autoFocus
                             />
+                        </div>
+
+                        {/* Template Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                                Template (Optional)
+                            </label>
+                            <select
+                                value={selectedTemplate}
+                                onChange={(e) => setSelectedTemplate(e.target.value)}
+                                className="input-field"
+                            >
+                                {templates.map((template) => (
+                                    <option key={template.id} value={template.id}>
+                                        {template.name} {template.description ? `- ${template.description}` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedTemplate !== 'none' && (
+                                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                                    {templates.find(t => t.id === selectedTemplate)?.structure}
+                                </p>
+                            )}
                         </div>
 
                         {/* Length Selection */}
@@ -316,6 +548,7 @@ Write the complete article now with image prompts and viral toolkit included.`;
     const content = article.content || streamedContent;
     const wordCount = countWords(content);
     const readingTime = calculateReadingTime(content);
+    const progress = wordGoal ? Math.min((wordCount / wordGoal) * 100, 100) : 0;
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -330,12 +563,57 @@ Write the complete article now with image prompts and viral toolkit included.`;
                         <Clock className="w-4 h-4" />
                         {readingTime} min read
                     </span>
+                    {wordGoal && (
+                        <span className="flex items-center gap-1.5">
+                            <div className="w-16 h-1.5 bg-[var(--color-card)] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-green-500 transition-all duration-300"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                            <span className="text-xs">{Math.round(progress)}%</span>
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={handleCopy} className="btn-secondary text-sm">
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                         {copied ? 'Copied!' : 'Copy'}
                     </button>
+                    
+                    {/* Export Menu */}
+                    <div className="relative" ref={exportMenuRef}>
+                        <button 
+                            onClick={() => setShowExportMenu(!showExportMenu)} 
+                            className="btn-secondary text-sm"
+                        >
+                            <Download className="w-4 h-4" />
+                            Export
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg shadow-lg p-2 z-10">
+                                <button
+                                    onClick={() => exportArticle('markdown')}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/5 rounded transition-colors"
+                                >
+                                    📄 Markdown (.md)
+                                </button>
+                                <button
+                                    onClick={() => exportArticle('html')}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/5 rounded transition-colors"
+                                >
+                                    🌐 HTML
+                                </button>
+                                <button
+                                    onClick={() => exportArticle('txt')}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-white/5 rounded transition-colors"
+                                >
+                                    📝 Plain Text
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                     <button onClick={onNewArticle} className="btn-primary text-sm">
                         <Plus className="w-4 h-4" />
                         New
@@ -343,7 +621,7 @@ Write the complete article now with image prompts and viral toolkit included.`;
                     <div className="w-px h-6 bg-[var(--color-border)] mx-1" />
                     <button
                         onClick={() => setIsEditing(!isEditing)}
-                        className={`btn-secondary text-sm ${isEditing ? 'bg-[var(--color-accent)] text-white border-transparent' : ''}`}
+                        className={`btn-secondary text-sm ${isEditing ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)] border-transparent' : ''}`}
                     >
                         {isEditing ? (
                             <>
@@ -359,6 +637,19 @@ Write the complete article now with image prompts and viral toolkit included.`;
                     </button>
                 </div>
             </div>
+
+            {/* Error Display in Editor */}
+            {error && (
+                <div className="mx-6 mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                        <p className="text-sm text-red-400">{error}</p>
+                    </div>
+                    <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             {/* Content */}
             <div ref={contentRef} className="flex-1 overflow-y-auto">
