@@ -357,3 +357,71 @@
     overflow: hidden;
   }
 }
+
+/* ==========================================================================
+   Generation Progress Panel Animations (from Pustakam)
+   ========================================================================== */
+
+/* Keyframe Animations */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+}
+
+/* Animation Utilities */
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--color-border) 25%, var(--color-card) 50%, var(--color-border) 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Streaming Text Box */
+.streaming-text-box {
+  scroll-behavior: smooth;
+  overflow-anchor: auto;
+}
+
+.streaming-text-box::-webkit-scrollbar {
+  width: 4px;
+}
+
+.streaming-text-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.streaming-text-box::-webkit-scrollbar-thumb {
+  background-color: rgba(59, 130, 246, 0.4);
+  border-radius: 2px;
+}
+
+.streaming-text-box::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.6);
+}
+
+/* Generation Panel Glow */
+.generation-panel-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
