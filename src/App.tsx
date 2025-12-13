@@ -1,5 +1,5 @@
 // ============================================================================
-// MAIN APP - With Keyboard Shortcuts & Toast Notifications
+// MAIN APP - Fixed New Article Button & Enhanced UI
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -24,8 +24,8 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-6 right-6 bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg px-4 py-3 shadow-lg z-50 animate-fade-in-up">
-      <p className="text-sm text-[var(--color-text-primary)]">{message}</p>
+    <div className="fixed bottom-6 right-6 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/50 rounded-xl px-5 py-3 shadow-2xl z-50 animate-fade-in-up backdrop-blur-xl">
+      <p className="text-sm text-green-300 font-semibold">{message}</p>
     </div>
   );
 }
@@ -119,14 +119,14 @@ function App() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         handleNewArticle();
-        setToast('New article created');
+        setToast('✨ New article created');
       }
 
-      // Cmd/Ctrl + S: Manual save (already auto-saves)
+      // Cmd/Ctrl + S: Manual save
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         storageUtils.saveArticles(articles);
-        setToast('All changes saved');
+        setToast('💾 All changes saved');
       }
 
       // Cmd/Ctrl + ,: Open settings
@@ -146,7 +146,7 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [articles, sidebarFolded]);
 
-  // Handlers
+  // FIXED: Handler for new article
   const handleNewArticle = useCallback(() => {
     const newArticle: Article = {
       id: generateId(),
@@ -156,10 +156,22 @@ function App() {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    
+    // Add to beginning of articles list
     setArticles((prev) => [newArticle, ...prev]);
+    
+    // Set as current article
     setCurrentArticle(newArticle);
+    
+    // Switch to generator view
     setCurrentView('generator');
-    if (window.innerWidth < 1024) setSidebarOpen(false);
+    
+    // Close sidebar on mobile
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+    
+    console.log('New article created:', newArticle.id);
   }, []);
 
   const handleSelectArticle = useCallback((article: Article) => {
@@ -176,11 +188,12 @@ function App() {
       }
       return remaining;
     });
-    setToast('Article deleted');
+    setToast('🗑️ Article deleted');
   }, [currentArticle]);
 
   const handleUpdateArticle = useCallback((updates: Partial<Article>) => {
     if (!currentArticle) {
+      // Create new article if none exists
       const newArticle: Article = {
         id: generateId(),
         title: '',
@@ -211,7 +224,7 @@ function App() {
     setSettings(newSettings);
     storageUtils.saveSettings(newSettings);
     aiService.updateSettings(newSettings);
-    setToast('Settings saved');
+    setToast('⚙️ Settings saved');
   }, []);
 
   const handleChangeView = useCallback((view: AppView) => {
@@ -245,7 +258,7 @@ function App() {
       {/* Mobile Backdrop */}
       {sidebarOpen && window.innerWidth < 1024 && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -272,7 +285,7 @@ function App() {
         {!sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(true)}
-            className="fixed top-3 left-3 z-40 p-2.5 glass-panel rounded-xl shadow-lg hover:bg-white/10 transition-all lg:hidden"
+            className="fixed top-4 left-4 z-40 p-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl hover:bg-white/20 transition-all lg:hidden"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -297,29 +310,29 @@ function App() {
       {/* Toast Notification */}
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
-      {/* Keyboard Shortcuts Help (visible on hover in bottom-left) */}
-      <div className="fixed bottom-4 left-4 group z-30 hidden lg:block">
-        <div className="text-xs text-[var(--color-text-muted)] bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-help">
+      {/* Keyboard Shortcuts Help */}
+      <div className="fixed bottom-5 left-5 group z-30 hidden lg:block">
+        <div className="text-xs text-gray-400 bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-help font-medium">
           ⌨️ Shortcuts
         </div>
-        <div className="absolute bottom-full left-0 mb-2 w-64 bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
-          <h4 className="text-xs font-semibold mb-2">Keyboard Shortcuts</h4>
-          <div className="space-y-1 text-xs text-[var(--color-text-secondary)]">
-            <div className="flex justify-between">
+        <div className="absolute bottom-full left-0 mb-3 w-72 bg-gray-900/95 backdrop-blur-xl border-2 border-white/20 rounded-xl p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl">
+          <h4 className="text-sm font-bold mb-3 text-white">Keyboard Shortcuts</h4>
+          <div className="space-y-2 text-sm text-gray-300">
+            <div className="flex justify-between items-center">
               <span>New Article</span>
-              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘K</kbd>
+              <kbd className="px-2 py-1 bg-white/10 rounded font-mono text-xs">⌘K</kbd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span>Save</span>
-              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘S</kbd>
+              <kbd className="px-2 py-1 bg-white/10 rounded font-mono text-xs">⌘S</kbd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span>Settings</span>
-              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘,</kbd>
+              <kbd className="px-2 py-1 bg-white/10 rounded font-mono text-xs">⌘,</kbd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span>Toggle Sidebar</span>
-              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘B</kbd>
+              <kbd className="px-2 py-1 bg-white/10 rounded font-mono text-xs">⌘B</kbd>
             </div>
           </div>
         </div>
