@@ -19,13 +19,6 @@ interface ArticleGeneratorProps {
     hasApiKey: boolean;
 }
 
-const toneOptions = [
-    { id: 'conversational', label: 'Conversational', emoji: '💬' },
-    { id: 'professional', label: 'Professional', emoji: '💼' },
-    { id: 'storytelling', label: 'Storytelling', emoji: '📖' },
-    { id: 'technical', label: 'Technical', emoji: '⚙️' },
-];
-
 const lengthOptions = [
     { id: 'short', label: 'Short', words: '~500' },
     { id: 'medium', label: 'Medium', words: '~1000' },
@@ -42,7 +35,6 @@ export function ArticleGenerator({
     hasApiKey,
 }: ArticleGeneratorProps) {
     const [topic, setTopic] = useState('');
-    const [selectedTone, setSelectedTone] = useState('conversational');
     const [selectedLength, setSelectedLength] = useState('medium');
     const [isGenerating, setIsGenerating] = useState(false);
     const [streamedContent, setStreamedContent] = useState('');
@@ -99,7 +91,6 @@ export function ArticleGenerator({
         const prompt = `Write a complete Medium article about: "${topic}"
 
 REQUIREMENTS:
-- Tone: ${selectedTone}
 - Length: ${lengthGuide[selectedLength as keyof typeof lengthGuide]}
 - CRITICAL: Write like a HUMAN, not AI. Avoid AI patterns.
 - Use contractions naturally
@@ -249,28 +240,6 @@ Write the complete article now with image prompts and viral toolkit included.`;
                                 rows={2}
                                 autoFocus
                             />
-                        </div>
-
-                        {/* Tone Selection */}
-                        <div>
-                            <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
-                                Tone
-                            </label>
-                            <div className="grid grid-cols-4 gap-2">
-                                {toneOptions.map((tone) => (
-                                    <button
-                                        key={tone.id}
-                                        onClick={() => setSelectedTone(tone.id)}
-                                        className={`p-2 rounded-lg text-center transition-all ${selectedTone === tone.id
-                                            ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
-                                            : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-white/20 text-[var(--color-text-secondary)]'
-                                            }`}
-                                    >
-                                        <div className="text-lg">{tone.emoji}</div>
-                                        <div className="text-xs font-medium mt-1">{tone.label}</div>
-                                    </button>
-                                ))}
-                            </div>
                         </div>
 
                         {/* Length Selection */}
