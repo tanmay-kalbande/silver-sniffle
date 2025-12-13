@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Menu } from 'lucide-react';
-import { Article, Memory, WritingExample, APISettings, AppView, AIModel } from './types';
+import { Article, Memory, WritingExample, APISettings, AppView } from './types';
 import { generateId } from './utils/helpers';
 import { storageUtils } from './utils/storage';
 import { aiService } from './services/aiService';
@@ -42,11 +42,6 @@ function App() {
     setMemories(loadedMemories);
     setExamples(loadedExamples);
     setSettings(loadedSettings);
-
-    // Select first article if exists
-    if (loadedArticles.length > 0) {
-      setCurrentArticle(loadedArticles[0]);
-    }
 
     // Update AI service
     aiService.updateSettings(loadedSettings);
@@ -95,6 +90,7 @@ function App() {
 
   // Handlers
   const handleNewArticle = useCallback(() => {
+    // Create a new empty article
     const newArticle: Article = {
       id: generateId(),
       title: '',
@@ -116,12 +112,15 @@ function App() {
   }, []);
 
   const handleDeleteArticle = useCallback((id: string) => {
-    setArticles((prev) => prev.filter((a) => a.id !== id));
-    if (currentArticle?.id === id) {
-      const remaining = articles.filter((a) => a.id !== id);
-      setCurrentArticle(remaining.length > 0 ? remaining[0] : null);
-    }
-  }, [currentArticle, articles]);
+    setArticles((prev) => {
+      const remaining = prev.filter((a) => a.id !== id);
+      // If deleted the current article, clear selection
+      if (currentArticle?.id === id) {
+        setCurrentArticle(remaining.length > 0 ? remaining[0] : null);
+      }
+      return remaining;
+    });
+  }, [currentArticle]);
 
   const handleUpdateArticle = useCallback((updates: Partial<Article>) => {
     if (!currentArticle) {
@@ -157,13 +156,6 @@ function App() {
     storageUtils.saveSettings(newSettings);
     aiService.updateSettings(newSettings);
   }, []);
-
-  const handleModelChange = useCallback((model: AIModel) => {
-    const newSettings = { ...settings, selectedModel: model };
-    setSettings(newSettings);
-    storageUtils.saveSettings(newSettings);
-    aiService.updateSettings(newSettings);
-  }, [settings]);
 
   const handleChangeView = useCallback((view: AppView) => {
     setCurrentView(view);
@@ -207,13 +199,11 @@ function App() {
         currentView={currentView}
         isOpen={sidebarOpen}
         isFolded={sidebarFolded}
-        selectedModel={settings.selectedModel}
         onSelectArticle={handleSelectArticle}
         onNewArticle={handleNewArticle}
         onDeleteArticle={handleDeleteArticle}
         onChangeView={handleChangeView}
         onOpenSettings={() => setSettingsOpen(true)}
-        onModelChange={handleModelChange}
         onClose={() => setSidebarOpen(false)}
         onToggleFold={() => setSidebarFolded(!sidebarFolded)}
       />
