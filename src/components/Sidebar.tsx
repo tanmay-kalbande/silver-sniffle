@@ -65,12 +65,12 @@ export function Sidebar({
     return (
         <aside className={sidebarClasses}>
             {/* Header */}
-            <div className="p-3 border-b border-[var(--color-border)]">
-                <div className="flex items-center justify-between mb-3">
+            <div className="p-2 border-b border-[var(--color-border)] flex flex-col gap-2">
+                <div className="flex items-center justify-between">
                     {!isFolded && (
-                        <a href="/" className="flex items-center gap-2">
-                            <img src="/favicon.ico" alt="logo" className="w-7 h-7 rounded-lg" />
-                            <span className="font-semibold">Tanmay Kalbande</span>
+                        <a href="/" className="flex items-center gap-2.5 group px-2">
+                            <img src="/palm-color.png" alt="Article Gen Logo" className="w-6 h-6" />
+                            <h1 className="text-lg font-semibold text-[var(--color-text-primary)] group-hover:opacity-80 transition-opacity">Article Gen</h1>
                         </a>
                     )}
                     <div className="flex items-center gap-1">
@@ -100,7 +100,7 @@ export function Sidebar({
                 {/* New Article Button */}
                 <button
                     onClick={onNewArticle}
-                    className={`w-full flex items-center ${isFolded ? 'justify-center' : 'justify-start'} gap-2 px-3 py-2.5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-lg text-[var(--color-accent-text)] font-semibold transition-all`}
+                    className={`w-full flex items-center ${isFolded ? 'justify-center' : 'justify-start'} gap-2 px-3 py-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-lg text-[var(--color-accent-text)] font-semibold transition-all`}
                 >
                     <Plus className="w-4 h-4" />
                     {!isFolded && <span>New Article</span>}
