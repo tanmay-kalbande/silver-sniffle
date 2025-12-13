@@ -4,6 +4,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Wand2, Clock, Type, RefreshCw, Copy, Check, Plus } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Article, Memory, WritingExample } from '../types';
 import { calculateReadingTime, countWords } from '../utils/helpers';
 import { aiService } from '../services/aiService';
@@ -127,16 +129,35 @@ Write the complete article now.`;
             let extractedTitle = topic;
             let extractedSubtitle = '';
             let articleContent = fullContent;
+            let startIndex = 0;
 
-            if (lines[0].startsWith('# ')) {
-                extractedTitle = lines[0].replace('# ', '').trim();
-                articleContent = lines.slice(1).join('\n').trim();
+            // Extract title from # or ## header
+            for (let i = 0; i < Math.min(5, lines.length); i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('# ')) {
+                    extractedTitle = line.replace(/^#+\s*/, '').trim();
+                    startIndex = i + 1;
+                    break;
+                } else if (line.startsWith('## ')) {
+                    extractedTitle = line.replace(/^#+\s*/, '').trim();
+                    startIndex = i + 1;
+                    break;
+                }
             }
 
-            if (lines[1] && (lines[1].startsWith('*') || lines[1].startsWith('_'))) {
-                extractedSubtitle = lines[1].replace(/[*_]/g, '').trim();
-                articleContent = lines.slice(2).join('\n').trim();
+            // Extract subtitle (italic text on next non-empty line)
+            for (let i = startIndex; i < Math.min(startIndex + 3, lines.length); i++) {
+                const line = lines[i].trim();
+                if (line && (line.startsWith('*') || line.startsWith('_'))) {
+                    extractedSubtitle = line.replace(/[*_]/g, '').trim();
+                    startIndex = i + 1;
+                    break;
+                } else if (line && !line.startsWith('#')) {
+                    break;
+                }
             }
+
+            articleContent = lines.slice(startIndex).join('\n').trim();
 
             onUpdateArticle({
                 title: extractedTitle,
@@ -327,6 +348,13 @@ Write the complete article now.`;
                         </div>
                     </div>
                 </div>
+
+                {/* Progress Panel in Welcome Screen */}
+                <GenerationProgressPanel
+                    isGenerating={isGenerating}
+                    streamedContent={streamedContent}
+                    startTime={generationStartTime}
+                />
             </div>
         );
     }
@@ -383,13 +411,28 @@ Write the complete article now.`;
 
                     <div className="h-px bg-[var(--color-border)] mb-6" />
 
-                    <textarea
-                        value={content}
-                        onChange={(e) => onUpdateArticle({ content: e.target.value })}
-                        placeholder="Your article content..."
-                        className="editor-textarea min-h-[60vh]"
-                        disabled={isGenerating}
-                    />
+                    {/* Article Content - Rendered Markdown */}
+                    <div className="prose prose-invert max-w-none min-h-[60vh]">
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                                h1: ({ children }) => <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4 mt-6">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-3 mt-5">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2 mt-4">{children}</h3>,
+                                p: ({ children }) => <p className="text-[var(--color-text-primary)] mb-4 leading-relaxed">{children}</p>,
+                                strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                                em: ({ children }) => <em className="italic text-[var(--color-text-secondary)]">{children}</em>,
+                                ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1 text-[var(--color-text-primary)]">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1 text-[var(--color-text-primary)]">{children}</ol>,
+                                li: ({ children }) => <li className="text-[var(--color-text-primary)]">{children}</li>,
+                                blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-[var(--color-text-secondary)] my-4">{children}</blockquote>,
+                                code: ({ children }) => <code className="bg-[var(--color-card)] px-1.5 py-0.5 rounded text-sm font-mono text-blue-400">{children}</code>,
+                                pre: ({ children }) => <pre className="bg-[var(--color-card)] p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
+                            }}
+                        >
+                            {content || 'Your article content will appear here...'}
+                        </ReactMarkdown>
+                    </div>
 
                     {isGenerating && (
                         <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] mt-4">
