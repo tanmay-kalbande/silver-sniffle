@@ -7,6 +7,7 @@ import { Wand2, Clock, Type, RefreshCw, Copy, Check, Plus } from 'lucide-react';
 import { Article, Memory, WritingExample } from '../types';
 import { calculateReadingTime, countWords } from '../utils/helpers';
 import { aiService } from '../services/aiService';
+import { GenerationProgressPanel } from './GenerationProgressPanel';
 
 interface ArticleGeneratorProps {
     article: Article | null;
@@ -45,6 +46,7 @@ export function ArticleGenerator({
     const [isGenerating, setIsGenerating] = useState(false);
     const [streamedContent, setStreamedContent] = useState('');
     const [copied, setCopied] = useState(false);
+    const [generationStartTime, setGenerationStartTime] = useState<Date | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll during generation
@@ -67,6 +69,7 @@ export function ArticleGenerator({
 
         setIsGenerating(true);
         setStreamedContent('');
+        setGenerationStartTime(new Date());
 
         let memoryContext = '';
         if (memories.length > 0) {
@@ -396,6 +399,13 @@ Write the complete article now.`;
                     )}
                 </div>
             </div>
+
+            {/* Floating Generation Progress Panel */}
+            <GenerationProgressPanel
+                isGenerating={isGenerating}
+                streamedContent={streamedContent}
+                startTime={generationStartTime}
+            />
         </div>
     );
 }
