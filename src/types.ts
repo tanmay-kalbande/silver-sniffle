@@ -2,10 +2,11 @@
 // TYPES - Article Generator
 // ============================================================================
 
-// AI Models (same as cosmic-glass)
+// AI Models (including Gemma 3 27B)
 export type AIModel =
     | 'gemini-2.5-flash'
     | 'gemini-2.5-pro'
+    | 'gemma-3-27b-it'
     | 'gpt-oss-120b'
     | 'mistral-large-latest'
     | 'mistral-medium-latest'
@@ -53,7 +54,7 @@ export interface ChatMessage {
     timestamp: Date;
 }
 
-// API Settings (simplified - no mode)
+// API Settings
 export interface APISettings {
     googleApiKey: string;
     mistralApiKey: string;
