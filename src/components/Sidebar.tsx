@@ -69,10 +69,8 @@ export function Sidebar({
                 <div className="flex items-center justify-between mb-3">
                     {!isFolded && (
                         <a href="/" className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-[var(--color-accent)] flex items-center justify-center">
-                                <PenLine className="w-4 h-4 text-[var(--color-accent-text)]" />
-                            </div>
-                            <span className="font-semibold">Article Gen</span>
+                            <img src="/favicon.ico" alt="logo" className="w-7 h-7 rounded-lg" />
+                            <span className="font-semibold">Tanmay Kalbande</span>
                         </a>
                     )}
                     <div className="flex items-center gap-1">
@@ -141,8 +139,8 @@ export function Sidebar({
                                 onMouseEnter={() => setHoveredId(article.id)}
                                 onMouseLeave={() => setHoveredId(null)}
                                 className={`group relative flex items-center gap-2 ${isFolded ? 'justify-center p-2.5' : 'p-2.5'} rounded-lg cursor-pointer transition-colors ${currentArticle?.id === article.id
-                                        ? 'bg-white/10 text-[var(--color-text-primary)]'
-                                        : 'hover:bg-white/5 text-[var(--color-text-primary)]'
+                                    ? 'bg-white/10 text-[var(--color-text-primary)]'
+                                    : 'hover:bg-white/5 text-[var(--color-text-primary)]'
                                     }`}
                                 title={article.title || 'Untitled'}
                             >
@@ -184,8 +182,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('generator')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'generator'
-                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
+                            ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Generator"
                     >
@@ -195,8 +193,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('memories')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'memories'
-                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
+                            ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Memory"
                     >
@@ -206,8 +204,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('examples')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'examples'
-                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
+                            ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Examples"
                     >
