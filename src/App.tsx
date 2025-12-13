@@ -1,5 +1,5 @@
 // ============================================================================
-// MAIN APP - Article Generator
+// MAIN APP - With Keyboard Shortcuts & Toast Notifications
 // ============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -16,6 +16,20 @@ import { MemoryPanel } from './components/MemoryPanel';
 import { ExamplesPanel } from './components/ExamplesPanel';
 import { SettingsModal } from './components/SettingsModal';
 
+// Toast Notification Component
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 2000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-6 right-6 bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg px-4 py-3 shadow-lg z-50 animate-fade-in-up">
+      <p className="text-sm text-[var(--color-text-primary)]">{message}</p>
+    </div>
+  );
+}
+
 function App() {
   // State
   const [articles, setArticles] = useState<Article[]>([]);
@@ -30,6 +44,7 @@ function App() {
     return stored ? JSON.parse(stored) : false;
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   // Check if API key is configured
   const hasApiKey = !!(settings.googleApiKey || settings.mistralApiKey || settings.cerebrasApiKey || settings.zhipuApiKey);
@@ -91,6 +106,46 @@ function App() {
     aiService.updateExamples(examples);
   }, [examples]);
 
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Cmd/Ctrl + K: New article
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        handleNewArticle();
+        setToast('New article created');
+      }
+
+      // Cmd/Ctrl + S: Manual save (already auto-saves)
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        storageUtils.saveArticles(articles);
+        setToast('All changes saved');
+      }
+
+      // Cmd/Ctrl + ,: Open settings
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        setSettingsOpen(true);
+      }
+
+      // Cmd/Ctrl + B: Toggle sidebar (desktop only)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b' && window.innerWidth >= 1024) {
+        e.preventDefault();
+        setSidebarFolded(!sidebarFolded);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [articles, sidebarFolded]);
+
   // Handlers
   const handleNewArticle = useCallback(() => {
     const newArticle: Article = {
@@ -121,6 +176,7 @@ function App() {
       }
       return remaining;
     });
+    setToast('Article deleted');
   }, [currentArticle]);
 
   const handleUpdateArticle = useCallback((updates: Partial<Article>) => {
@@ -155,6 +211,7 @@ function App() {
     setSettings(newSettings);
     storageUtils.saveSettings(newSettings);
     aiService.updateSettings(newSettings);
+    setToast('Settings saved');
   }, []);
 
   const handleChangeView = useCallback((view: AppView) => {
@@ -236,6 +293,37 @@ function App() {
         onSave={handleSaveSettings}
         onClose={() => setSettingsOpen(false)}
       />
+
+      {/* Toast Notification */}
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+
+      {/* Keyboard Shortcuts Help (visible on hover in bottom-left) */}
+      <div className="fixed bottom-4 left-4 group z-30 hidden lg:block">
+        <div className="text-xs text-[var(--color-text-muted)] bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-help">
+          ⌨️ Shortcuts
+        </div>
+        <div className="absolute bottom-full left-0 mb-2 w-64 bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+          <h4 className="text-xs font-semibold mb-2">Keyboard Shortcuts</h4>
+          <div className="space-y-1 text-xs text-[var(--color-text-secondary)]">
+            <div className="flex justify-between">
+              <span>New Article</span>
+              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘K</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Save</span>
+              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘S</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Settings</span>
+              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘,</kbd>
+            </div>
+            <div className="flex justify-between">
+              <span>Toggle Sidebar</span>
+              <kbd className="px-1.5 py-0.5 bg-[var(--color-bg-secondary)] rounded">⌘B</kbd>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
