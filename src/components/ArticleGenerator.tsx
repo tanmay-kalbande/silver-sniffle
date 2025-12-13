@@ -174,7 +174,6 @@ Write the complete article now with image prompts and viral toolkit included.`;
                 subtitle: extractedSubtitle,
                 content: articleContent,
                 topic,
-                tone: selectedTone,
                 length: selectedLength,
             });
 
