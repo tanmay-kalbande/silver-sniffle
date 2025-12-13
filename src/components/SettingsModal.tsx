@@ -1,9 +1,9 @@
 // ============================================================================
-// SETTINGS MODAL - With API Key Validation & Connection Testing
+// SETTINGS MODAL - Improved Model Selection UI
 // ============================================================================
 
 import { useState } from 'react';
-import { X, Key, Cpu, Eye, EyeOff, ExternalLink, Check, AlertCircle, Loader } from 'lucide-react';
+import { X, Key, Cpu, Eye, EyeOff, ExternalLink, Check, AlertCircle, Loader, Sparkles } from 'lucide-react';
 import { APISettings, AIModel } from '../types';
 import { aiService } from '../services/aiService';
 
@@ -17,16 +17,16 @@ interface SettingsModalProps {
 type SettingsTab = 'keys' | 'model';
 type TestStatus = 'idle' | 'testing' | 'success' | 'error';
 
-const models: { id: AIModel; name: string; provider: string }[] = [
-    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
-    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
-    { id: 'gemma-3-27b-it', name: 'Gemma 3 27B', provider: 'Google' },
-    { id: 'gpt-oss-120b', name: 'GPT OSS 120B', provider: 'Cerebras' },
-    { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral' },
-    { id: 'mistral-medium-latest', name: 'Mistral Medium', provider: 'Mistral' },
-    { id: 'glm-4.5-flash', name: 'GLM 4.5 Flash', provider: 'Zhipu' },
-    { id: 'qwen-3-235b-a22b-instruct-2507', name: 'Qwen 235B', provider: 'Cerebras' },
-    { id: 'zai-glm-4.6', name: 'ZAI GLM 4.6', provider: 'Cerebras' },
+const models: { id: AIModel; name: string; provider: string; description: string; recommended?: boolean }[] = [
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient', recommended: true },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Most capable' },
+    { id: 'gemma-3-27b-it', name: 'Gemma 3 27B', provider: 'Google', description: 'Open source' },
+    { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral', description: 'Powerful model' },
+    { id: 'mistral-medium-latest', name: 'Mistral Medium', provider: 'Mistral', description: 'Balanced' },
+    { id: 'gpt-oss-120b', name: 'GPT OSS 120B', provider: 'Cerebras', description: 'Ultra fast' },
+    { id: 'qwen-3-235b-a22b-instruct-2507', name: 'Qwen 235B', provider: 'Cerebras', description: 'Multilingual' },
+    { id: 'zai-glm-4.6', name: 'ZAI GLM 4.6', provider: 'Cerebras', description: 'Advanced reasoning' },
+    { id: 'glm-4.5-flash', name: 'GLM 4.5 Flash', provider: 'Zhipu', description: 'Lightning fast' },
 ];
 
 function validateApiKey(key: string, provider: string): { valid: boolean; message?: string } {
@@ -61,7 +61,7 @@ function validateApiKey(key: string, provider: string): { valid: boolean; messag
 
 export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsModalProps) {
     const [localSettings, setLocalSettings] = useState<APISettings>(settings);
-    const [activeTab, setActiveTab] = useState<SettingsTab>('keys');
+    const [activeTab, setActiveTab] = useState<SettingsTab>('model');
     const [showKey, setShowKey] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
     const [testStatus, setTestStatus] = useState<TestStatus>('idle');
@@ -83,7 +83,6 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
         setTestError('');
 
         try {
-            // Temporarily update AI service with test settings
             const originalSettings = { ...settings };
             aiService.updateSettings(localSettings);
 
@@ -99,7 +98,6 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
                 }
             }
 
-            // Restore original settings
             aiService.updateSettings(originalSettings);
 
             if (response.toLowerCase().includes('ok')) {
@@ -113,59 +111,125 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
             setTestStatus('error');
             const errorMessage = error instanceof Error ? error.message : 'Connection failed';
             setTestError(errorMessage);
-            
-            // Restore original settings
             aiService.updateSettings(settings);
         }
     };
 
     const apiKeyFields = [
-        { key: 'googleApiKey' as const, label: 'Google AI', url: 'https://aistudio.google.com/apikey', provider: 'google' },
-        { key: 'mistralApiKey' as const, label: 'Mistral AI', url: 'https://console.mistral.ai/api-keys', provider: 'mistral' },
-        { key: 'cerebrasApiKey' as const, label: 'Cerebras', url: 'https://cloud.cerebras.ai/', provider: 'cerebras' },
-        { key: 'zhipuApiKey' as const, label: 'ZhipuAI', url: 'https://open.bigmodel.cn/', provider: 'zhipu' },
+        { key: 'googleApiKey' as const, label: 'Google AI', url: 'https://aistudio.google.com/apikey', provider: 'google', icon: '🔵' },
+        { key: 'mistralApiKey' as const, label: 'Mistral AI', url: 'https://console.mistral.ai/api-keys', provider: 'mistral', icon: '🟠' },
+        { key: 'cerebrasApiKey' as const, label: 'Cerebras', url: 'https://cloud.cerebras.ai/', provider: 'cerebras', icon: '🟣' },
+        { key: 'zhipuApiKey' as const, label: 'ZhipuAI', url: 'https://open.bigmodel.cn/', provider: 'zhipu', icon: '🔴' },
     ];
 
     const hasAnyKey = Object.values(localSettings).some(val => typeof val === 'string' && val.trim().length > 0);
 
+    // Group models by provider
+    const groupedModels = models.reduce((acc, model) => {
+        if (!acc[model.provider]) acc[model.provider] = [];
+        acc[model.provider].push(model);
+        return acc;
+    }, {} as Record<string, typeof models>);
+
     return (
         <div className="modal-backdrop" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content max-w-3xl" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
-                    <h2 className="text-lg font-semibold">Settings</h2>
-                    <button onClick={onClose} className="btn-icon">
+                <div className="flex items-center justify-between p-6 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">Settings</h2>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 p-3 border-b border-[var(--color-border)]">
-                    <button
-                        onClick={() => setActiveTab('keys')}
-                        className={`tab-button ${activeTab === 'keys' ? 'active' : ''}`}
-                    >
-                        <Key className="w-4 h-4 inline mr-1.5" />
-                        API Keys
-                    </button>
+                <div className="flex gap-2 p-4 border-b border-white/10">
                     <button
                         onClick={() => setActiveTab('model')}
-                        className={`tab-button ${activeTab === 'model' ? 'active' : ''}`}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
+                            activeTab === 'model'
+                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                        }`}
                     >
-                        <Cpu className="w-4 h-4 inline mr-1.5" />
-                        Model
+                        <Cpu className="w-5 h-5" />
+                        AI Model
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('keys')}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
+                            activeTab === 'keys'
+                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                        }`}
+                    >
+                        <Key className="w-5 h-5" />
+                        API Keys
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-4 max-h-[50vh] overflow-y-auto">
+                <div className="p-6 max-h-[60vh] overflow-y-auto">
+                    {/* Model Selection Tab */}
+                    {activeTab === 'model' && (
+                        <div className="space-y-6">
+                            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                                <p className="text-sm text-blue-300">
+                                    💡 Choose the AI model that powers your article generation. Different models have different strengths.
+                                </p>
+                            </div>
+
+                            {Object.entries(groupedModels).map(([provider, providerModels]) => (
+                                <div key={provider}>
+                                    <h3 className="text-lg font-bold text-white mb-3 uppercase tracking-wider">{provider}</h3>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {providerModels.map((model) => (
+                                            <button
+                                                key={model.id}
+                                                onClick={() => setLocalSettings((s) => ({ ...s, selectedModel: model.id }))}
+                                                className={`relative p-4 rounded-xl text-left transition-all ${
+                                                    localSettings.selectedModel === model.id
+                                                        ? 'bg-gradient-to-br from-blue-500/20 to-purple-600/20 border-2 border-blue-500/50 shadow-lg'
+                                                        : 'bg-white/5 border-2 border-white/10 hover:border-white/30 hover:bg-white/10'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="font-bold text-white text-lg">{model.name}</span>
+                                                            {model.recommended && (
+                                                                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full font-bold">
+                                                                    RECOMMENDED
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-sm text-gray-400">{model.description}</p>
+                                                    </div>
+                                                    {localSettings.selectedModel === model.id && (
+                                                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                                            <Check className="w-5 h-5 text-white" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     {/* API Keys Tab */}
                     {activeTab === 'keys' && (
-                        <div className="space-y-4">
-                            {/* Info Box */}
-                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                                <p className="text-xs text-blue-300">
-                                    💡 Add at least one API key to start generating articles. All keys are stored locally in your browser.
+                        <div className="space-y-5">
+                            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                                <p className="text-sm text-blue-300">
+                                    💡 Add at least one API key to start generating. Keys are stored locally in your browser.
                                 </p>
                             </div>
 
@@ -175,36 +239,41 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
                                     : { valid: true };
 
                                 return (
-                                    <div key={field.key}>
-                                        <label className="flex items-center justify-between text-sm font-medium mb-2">
-                                            {field.label}
+                                    <div key={field.key} className="bg-white/5 border border-white/10 rounded-xl p-5">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="flex items-center gap-2 text-base font-bold text-white">
+                                                <span className="text-2xl">{field.icon}</span>
+                                                {field.label}
+                                            </label>
                                             <a
                                                 href={field.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
+                                                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1.5 transition-colors font-medium"
                                             >
-                                                Get key <ExternalLink className="w-3 h-3" />
+                                                Get API Key <ExternalLink className="w-4 h-4" />
                                             </a>
-                                        </label>
+                                        </div>
                                         <div className="relative">
                                             <input
                                                 type={showKey === field.key ? 'text' : 'password'}
                                                 value={localSettings[field.key]}
                                                 onChange={(e) => setLocalSettings((s) => ({ ...s, [field.key]: e.target.value }))}
-                                                placeholder="Enter API key"
-                                                className={`input-field pr-10 ${!validation.valid ? 'border-red-500/50' : ''}`}
+                                                placeholder="Enter your API key..."
+                                                className={`w-full bg-white/5 border-2 ${
+                                                    !validation.valid ? 'border-red-500/50' : 'border-white/10 focus:border-blue-500/50'
+                                                } rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-500 focus:outline-none transition-all`}
                                             />
                                             <button
                                                 onClick={() => setShowKey(showKey === field.key ? null : field.key)}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 btn-icon p-1"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg transition-colors"
                                             >
-                                                {showKey === field.key ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                {showKey === field.key ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
                                         </div>
                                         {!validation.valid && validation.message && (
-                                            <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3" />
+                                            <p className="text-sm text-red-400 mt-2 flex items-center gap-1.5 font-medium">
+                                                <AlertCircle className="w-4 h-4" />
                                                 {validation.message}
                                             </p>
                                         )}
@@ -218,73 +287,58 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
                                     <button
                                         onClick={testConnection}
                                         disabled={testStatus === 'testing'}
-                                        className={`btn-secondary w-full ${testStatus === 'success' ? 'border-green-500/50 text-green-400' : testStatus === 'error' ? 'border-red-500/50 text-red-400' : ''}`}
+                                        className={`w-full px-6 py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-3 ${
+                                            testStatus === 'success'
+                                                ? 'bg-green-500/20 border-2 border-green-500/50 text-green-300'
+                                                : testStatus === 'error'
+                                                ? 'bg-red-500/20 border-2 border-red-500/50 text-red-300'
+                                                : 'bg-white/5 border-2 border-white/10 text-white hover:border-white/30'
+                                        }`}
                                     >
                                         {testStatus === 'testing' && (
                                             <>
-                                                <Loader className="w-4 h-4 animate-spin" />
+                                                <Loader className="w-5 h-5 animate-spin" />
                                                 Testing Connection...
                                             </>
                                         )}
                                         {testStatus === 'success' && (
                                             <>
-                                                <Check className="w-4 h-4" />
+                                                <Check className="w-5 h-5" />
                                                 Connection Successful!
                                             </>
                                         )}
                                         {testStatus === 'error' && (
                                             <>
-                                                <AlertCircle className="w-4 h-4" />
+                                                <AlertCircle className="w-5 h-5" />
                                                 Connection Failed
                                             </>
                                         )}
-                                        {testStatus === 'idle' && (
-                                            <>
-                                                Test Connection
-                                            </>
-                                        )}
+                                        {testStatus === 'idle' && <>Test Connection</>}
                                     </button>
                                     {testError && (
-                                        <p className="text-xs text-red-400 mt-2">{testError}</p>
+                                        <p className="text-sm text-red-400 mt-3 font-medium">{testError}</p>
                                     )}
                                 </div>
                             )}
                         </div>
                     )}
-
-                    {/* Model Tab */}
-                    {activeTab === 'model' && (
-                        <div className="space-y-2">
-                            <p className="text-xs text-[var(--color-text-muted)] mb-3">
-                                Select the AI model to use for generating articles. Different models have different strengths and response times.
-                            </p>
-                            {models.map((model) => (
-                                <button
-                                    key={model.id}
-                                    onClick={() => setLocalSettings((s) => ({ ...s, selectedModel: model.id }))}
-                                    className={`w-full p-3 rounded-lg text-left transition-all flex items-center justify-between ${localSettings.selectedModel === model.id
-                                        ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
-                                        : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
-                                        }`}
-                                >
-                                    <span className="font-medium text-sm">{model.name}</span>
-                                    <span className={`text-xs ${localSettings.selectedModel === model.id ? 'opacity-70' : 'text-[var(--color-text-muted)]'
-                                        }`}>{model.provider}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end gap-2 p-4 border-t border-[var(--color-border)]">
-                    <button onClick={onClose} className="btn-secondary">
+                <div className="flex justify-end gap-3 p-6 border-t border-white/10">
+                    <button 
+                        onClick={onClose} 
+                        className="px-6 py-3 bg-white/5 border-2 border-white/10 hover:border-white/30 rounded-xl font-semibold transition-all"
+                    >
                         Cancel
                     </button>
-                    <button onClick={handleSave} className="btn-primary">
+                    <button 
+                        onClick={handleSave} 
+                        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
+                    >
                         {saved ? (
                             <>
-                                <Check className="w-4 h-4" />
+                                <Check className="w-5 h-5" />
                                 Saved!
                             </>
                         ) : (
