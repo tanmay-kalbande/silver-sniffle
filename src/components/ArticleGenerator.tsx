@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Wand2, Clock, Type, RefreshCw, Copy, Check, Plus } from 'lucide-react';
+import { Wand2, Clock, Type, RefreshCw, Copy, Check, Plus } from 'lucide-react';
 import { Article, Memory, WritingExample } from '../types';
 import { calculateReadingTime, countWords } from '../utils/helpers';
 import { aiService } from '../services/aiService';
@@ -219,8 +219,8 @@ Write the complete article now.`;
                                         key={tone.id}
                                         onClick={() => setSelectedTone(tone.id)}
                                         className={`p-2 rounded-lg text-center transition-all ${selectedTone === tone.id
-                                                ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
-                                                : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-white/20 text-[var(--color-text-secondary)]'
+                                            ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                                            : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-white/20 text-[var(--color-text-secondary)]'
                                             }`}
                                     >
                                         <div className="text-lg">{tone.emoji}</div>
@@ -241,8 +241,8 @@ Write the complete article now.`;
                                         key={len.id}
                                         onClick={() => setSelectedLength(len.id)}
                                         className={`p-2 rounded-lg text-center transition-all ${selectedLength === len.id
-                                                ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
-                                                : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-white/20 text-[var(--color-text-secondary)]'
+                                            ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                                            : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-white/20 text-[var(--color-text-secondary)]'
                                             }`}
                                     >
                                         <div className="text-xs font-semibold">{len.label}</div>
