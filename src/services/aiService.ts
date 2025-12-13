@@ -144,6 +144,7 @@ class AiService {
         switch (model) {
             case 'gemini-2.5-flash':
             case 'gemini-2.5-pro':
+            case 'gemma-3-27b-it':
                 return { provider: 'google', modelId: model };
             case 'mistral-large-latest':
             case 'mistral-medium-latest':
