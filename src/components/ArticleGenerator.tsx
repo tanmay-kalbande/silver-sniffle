@@ -1,5 +1,5 @@
 // ============================================================================
-// ARTICLE GENERATOR - Main Generation UI with Wizard
+// ARTICLE GENERATOR - Main Generation UI with Welcome Screen
 // ============================================================================
 
 import { useState, useRef, useEffect } from 'react';
@@ -14,20 +14,21 @@ interface ArticleGeneratorProps {
     examples: WritingExample[];
     onUpdateArticle: (updates: Partial<Article>) => void;
     onNewArticle: () => void;
+    hasApiKey: boolean;
 }
 
 const toneOptions = [
-    { id: 'conversational', label: 'Conversational', desc: 'Friendly & relatable' },
-    { id: 'professional', label: 'Professional', desc: 'Clear & authoritative' },
-    { id: 'storytelling', label: 'Storytelling', desc: 'Engaging narratives' },
-    { id: 'technical', label: 'Technical', desc: 'Detailed & precise' },
+    { id: 'conversational', label: 'Conversational', emoji: '💬' },
+    { id: 'professional', label: 'Professional', emoji: '💼' },
+    { id: 'storytelling', label: 'Storytelling', emoji: '📖' },
+    { id: 'technical', label: 'Technical', emoji: '⚙️' },
 ];
 
 const lengthOptions = [
-    { id: 'short', label: 'Short', desc: '~500 words' },
-    { id: 'medium', label: 'Medium', desc: '~1000 words' },
-    { id: 'long', label: 'Long', desc: '~2000 words' },
-    { id: 'comprehensive', label: 'Comprehensive', desc: '~3000+ words' },
+    { id: 'short', label: 'Short', words: '~500' },
+    { id: 'medium', label: 'Medium', words: '~1000' },
+    { id: 'long', label: 'Long', words: '~2000' },
+    { id: 'comprehensive', label: 'Full', words: '~3000+' },
 ];
 
 export function ArticleGenerator({
@@ -36,6 +37,7 @@ export function ArticleGenerator({
     examples,
     onUpdateArticle,
     onNewArticle,
+    hasApiKey,
 }: ArticleGeneratorProps) {
     const [topic, setTopic] = useState('');
     const [selectedTone, setSelectedTone] = useState('conversational');
@@ -52,25 +54,31 @@ export function ArticleGenerator({
         }
     }, [streamedContent, isGenerating]);
 
+    // Get greeting message based on time of day
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 17) return 'Good Afternoon';
+        return 'Good Evening';
+    };
+
     const handleGenerate = async () => {
         if (!topic.trim()) return;
 
         setIsGenerating(true);
         setStreamedContent('');
 
-        // Build context from memories and examples
         let memoryContext = '';
         if (memories.length > 0) {
             memoryContext = '\n\n--- AUTHOR CONTEXT ---\n';
             memories.forEach((m) => {
-                memoryContext += `[${m.category.toUpperCase()}] ${m.title}: ${m.content}\n`;
+                memoryContext += `${m.content}\n`;
             });
         }
 
         let exampleContext = '';
         if (examples.length > 0) {
-            exampleContext = '\n\n--- WRITING STYLE EXAMPLES ---\n';
-            exampleContext += 'Match this writing style, tone, and vocabulary:\n\n';
+            exampleContext = '\n\n--- WRITING STYLE EXAMPLES ---\nMatch this writing style:\n\n';
             examples.forEach((e, i) => {
                 exampleContext += `Example ${i + 1}: "${e.content.slice(0, 500)}..."\n\n`;
             });
@@ -86,26 +94,20 @@ export function ArticleGenerator({
         const prompt = `Write a complete Medium article about: "${topic}"
 
 REQUIREMENTS:
-- Tone: ${selectedTone} - write in a ${selectedTone} style
+- Tone: ${selectedTone}
 - Length: ${lengthGuide[selectedLength as keyof typeof lengthGuide]}
-- CRITICAL: Write like a HUMAN, not AI. Avoid these AI patterns:
-  * NO starting with "In today's..." or "In the world of..."
-  * NO "Let's dive in" or "Let's explore"
-  * NO "Whether you're a..." or "It's important to note"
-  * NO excessive hedging or filler phrases
-  * Use contractions naturally (I'm, you'll, don't)
-  * Include personal anecdotes or opinions where appropriate
-  * Use varied sentence lengths and structures
-  * Be direct and confident in your statements
+- CRITICAL: Write like a HUMAN, not AI. Avoid AI patterns.
+- Use contractions naturally
+- Be direct and confident
+- Include examples or stories
 
 FORMAT:
-- Start with a compelling hook (personal story, surprising fact, or bold statement)
+- Start with a compelling hook
 - Use markdown formatting with ## and ### headers
-- Include practical examples, stories, or data
-- End with a strong conclusion that leaves an impact
+- End with a strong conclusion
 ${memoryContext}${exampleContext}
 
-Write the complete article now. Be authentic and engaging.`;
+Write the complete article now.`;
 
         try {
             let fullContent = '';
@@ -118,19 +120,16 @@ Write the complete article now. Be authentic and engaging.`;
                 setStreamedContent(fullContent);
             }
 
-            // Extract title from content or generate one
             const lines = fullContent.split('\n');
             let extractedTitle = topic;
             let extractedSubtitle = '';
             let articleContent = fullContent;
 
-            // Check if first line is a title (# heading)
             if (lines[0].startsWith('# ')) {
                 extractedTitle = lines[0].replace('# ', '').trim();
                 articleContent = lines.slice(1).join('\n').trim();
             }
 
-            // Check for subtitle (often italicized or second line)
             if (lines[1] && (lines[1].startsWith('*') || lines[1].startsWith('_'))) {
                 extractedSubtitle = lines[1].replace(/[*_]/g, '').trim();
                 articleContent = lines.slice(2).join('\n').trim();
@@ -162,53 +161,70 @@ Write the complete article now. Be authentic and engaging.`;
         }
     };
 
-    // Show wizard for new/empty article
+    // Welcome Screen (no article selected or empty)
     if (!article || (!article.content && !streamedContent)) {
         return (
-            <div className="flex-1 flex items-center justify-center p-6">
-                <div className="max-w-xl w-full">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-                            <Sparkles className="w-8 h-8 text-white" />
+            <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
+                <div className="w-full max-w-2xl mx-auto space-y-8">
+                    {/* Logo */}
+                    <div className="flex justify-center">
+                        <div className="relative">
+                            <div className="w-16 h-16 bg-[var(--color-card)] rounded-2xl flex items-center justify-center p-3 border border-[var(--color-border)] shadow-lg">
+                                <img
+                                    src="/palm-color.png"
+                                    alt="Article Gen"
+                                    className="w-full h-full object-contain"
+                                    style={{ animationDuration: '2s' }}
+                                />
+                            </div>
+                            <div className="absolute inset-0 bg-white/10 rounded-2xl blur-xl -z-10"></div>
                         </div>
-                        <h1 className="text-3xl font-bold mb-2">Generate Article</h1>
-                        <p className="text-[var(--color-text-secondary)]">
-                            Tell us what you want to write about
+                    </div>
+
+                    {/* Greeting */}
+                    <div className="text-center">
+                        <h1 className="text-4xl font-bold text-[var(--color-text-primary)] mb-2">
+                            {getGreeting()}
+                        </h1>
+                        <p className="text-lg text-[var(--color-text-secondary)]">
+                            What would you like to write about?
                         </p>
                     </div>
 
-                    {/* Topic Input */}
-                    <div className="glass-panel p-6 space-y-6">
+                    {/* Generation Form */}
+                    <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6 space-y-5">
+                        {/* Topic Input */}
                         <div>
-                            <label className="block text-sm font-medium mb-2">What's your article about?</label>
+                            <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                                Article Topic
+                            </label>
                             <textarea
                                 value={topic}
                                 onChange={(e) => setTopic(e.target.value)}
-                                placeholder="e.g., How I increased my productivity by 10x using the Pomodoro technique..."
+                                placeholder="e.g., How I increased my productivity by 10x using simple habits..."
                                 className="textarea-field"
-                                rows={3}
+                                rows={2}
                                 autoFocus
                             />
                         </div>
 
                         {/* Tone Selection */}
                         <div>
-                            <label className="block text-sm font-medium mb-2">Writing Tone</label>
-                            <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                                Tone
+                            </label>
+                            <div className="grid grid-cols-4 gap-2">
                                 {toneOptions.map((tone) => (
                                     <button
                                         key={tone.id}
                                         onClick={() => setSelectedTone(tone.id)}
-                                        className={`p-3 rounded-lg text-left transition-all ${selectedTone === tone.id
-                                            ? 'bg-white text-black'
-                                            : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
+                                        className={`p-2 rounded-lg text-center transition-all ${selectedTone === tone.id
+                                                ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                                                : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-white/20 text-[var(--color-text-secondary)]'
                                             }`}
                                     >
-                                        <p className="font-medium text-sm">{tone.label}</p>
-                                        <p className={`text-xs ${selectedTone === tone.id ? 'text-black/60' : 'text-[var(--color-text-muted)]'}`}>
-                                            {tone.desc}
-                                        </p>
+                                        <div className="text-lg">{tone.emoji}</div>
+                                        <div className="text-xs font-medium mt-1">{tone.label}</div>
                                     </button>
                                 ))}
                             </div>
@@ -216,21 +232,21 @@ Write the complete article now. Be authentic and engaging.`;
 
                         {/* Length Selection */}
                         <div>
-                            <label className="block text-sm font-medium mb-2">Article Length</label>
+                            <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                                Length
+                            </label>
                             <div className="grid grid-cols-4 gap-2">
                                 {lengthOptions.map((len) => (
                                     <button
                                         key={len.id}
                                         onClick={() => setSelectedLength(len.id)}
-                                        className={`p-2.5 rounded-lg text-center transition-all ${selectedLength === len.id
-                                            ? 'bg-white text-black'
-                                            : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
+                                        className={`p-2 rounded-lg text-center transition-all ${selectedLength === len.id
+                                                ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
+                                                : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-white/20 text-[var(--color-text-secondary)]'
                                             }`}
                                     >
-                                        <p className="font-medium text-sm">{len.label}</p>
-                                        <p className={`text-xs ${selectedLength === len.id ? 'text-black/60' : 'text-[var(--color-text-muted)]'}`}>
-                                            {len.desc}
-                                        </p>
+                                        <div className="text-xs font-semibold">{len.label}</div>
+                                        <div className="text-xs opacity-70">{len.words}</div>
                                     </button>
                                 ))}
                             </div>
@@ -238,24 +254,33 @@ Write the complete article now. Be authentic and engaging.`;
 
                         {/* Context Info */}
                         {(memories.length > 0 || examples.length > 0) && (
-                            <div className="flex gap-3 text-xs text-[var(--color-text-muted)]">
+                            <div className="flex flex-wrap gap-2 text-xs">
                                 {memories.length > 0 && (
-                                    <span className="flex items-center gap-1">
-                                        ✓ {memories.length} memories loaded
+                                    <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full">
+                                        ✓ {memories.length} memories
                                     </span>
                                 )}
                                 {examples.length > 0 && (
-                                    <span className="flex items-center gap-1">
+                                    <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full">
                                         ✓ {examples.length} style examples
                                     </span>
                                 )}
                             </div>
                         )}
 
+                        {/* API Key Warning */}
+                        {!hasApiKey && (
+                            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                                <p className="text-sm text-red-400">
+                                    ⚠️ Configure your API key in settings to get started
+                                </p>
+                            </div>
+                        )}
+
                         {/* Generate Button */}
                         <button
                             onClick={handleGenerate}
-                            disabled={!topic.trim() || isGenerating}
+                            disabled={!topic.trim() || isGenerating || !hasApiKey}
                             className="btn-primary w-full py-3 text-base"
                         >
                             {isGenerating ? (
@@ -271,12 +296,39 @@ Write the complete article now. Be authentic and engaging.`;
                             )}
                         </button>
                     </div>
+
+                    {/* Features Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
+                            <div className="text-2xl mb-2">✍️</div>
+                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Human-like Writing</div>
+                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">No AI patterns</div>
+                        </div>
+
+                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
+                            <div className="text-2xl mb-2">🧠</div>
+                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Memory Context</div>
+                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">Personalized content</div>
+                        </div>
+
+                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
+                            <div className="text-2xl mb-2">🎨</div>
+                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Style Matching</div>
+                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">Match your voice</div>
+                        </div>
+
+                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
+                            <div className="text-2xl mb-2">⚡</div>
+                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Fast Generation</div>
+                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">Real-time streaming</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    // Show generated/editing article
+    // Article View
     const content = article.content || streamedContent;
     const wordCount = countWords(content);
     const readingTime = calculateReadingTime(content);
@@ -310,16 +362,14 @@ Write the complete article now. Be authentic and engaging.`;
             {/* Content */}
             <div ref={contentRef} className="flex-1 overflow-y-auto">
                 <div className="max-w-2xl mx-auto px-6 py-8">
-                    {/* Title */}
                     <input
                         type="text"
                         value={article.title}
                         onChange={(e) => onUpdateArticle({ title: e.target.value })}
                         placeholder="Article Title"
-                        className="w-full bg-transparent border-none text-3xl font-bold text-white placeholder:text-[var(--color-text-muted)] focus:outline-none mb-3"
+                        className="w-full bg-transparent border-none text-3xl font-bold text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none mb-3"
                     />
 
-                    {/* Subtitle */}
                     <input
                         type="text"
                         value={article.subtitle}
@@ -330,7 +380,6 @@ Write the complete article now. Be authentic and engaging.`;
 
                     <div className="h-px bg-[var(--color-border)] mb-6" />
 
-                    {/* Content */}
                     <textarea
                         value={content}
                         onChange={(e) => onUpdateArticle({ content: e.target.value })}
@@ -350,4 +399,3 @@ Write the complete article now. Be authentic and engaging.`;
         </div>
     );
 }
-
