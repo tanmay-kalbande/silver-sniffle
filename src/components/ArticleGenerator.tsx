@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { useState, useRef, useEffect } from 'react';
-import { Wand2, Clock, Type, RefreshCw, Copy, Check, Plus } from 'lucide-react';
+import { Wand2, Clock, Type, RefreshCw, Copy, Check, Plus, Edit3, Eye } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Article, Memory, WritingExample } from '../types';
@@ -47,6 +47,7 @@ export function ArticleGenerator({
     const [isGenerating, setIsGenerating] = useState(false);
     const [streamedContent, setStreamedContent] = useState('');
     const [copied, setCopied] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll during generation
@@ -120,9 +121,17 @@ IMAGE PROMPTS (VERY IMPORTANT):
 - Image prompts should be relevant to the section content
 - Make prompts specific and visually descriptive
 
+
+VIRAL TOOLKIT (AT THE END):
+- Add a separator line (---)
+- Add a "Viral Toolkit" section with:
+  1. 3 Alternative Viral Titles (Click-baity but honest)
+  2. 5 SEO Tags (High volume keywords)
+  3. Meta Description (150 chars, SEO optimized)
+
 ${memoryContext}${exampleContext}
 
-Write the complete article now with image prompts included.`;
+Write the complete article now with image prompts and viral toolkit included.`;
 
         try {
             let fullContent = '';
@@ -363,6 +372,23 @@ Write the complete article now with image prompts included.`;
                         <Plus className="w-4 h-4" />
                         New
                     </button>
+                    <div className="w-px h-6 bg-[var(--color-border)] mx-1" />
+                    <button
+                        onClick={() => setIsEditing(!isEditing)}
+                        className={`btn-secondary text-sm ${isEditing ? 'bg-[var(--color-accent)] text-white border-transparent' : ''}`}
+                    >
+                        {isEditing ? (
+                            <>
+                                <Eye className="w-4 h-4" />
+                                Preview
+                            </>
+                        ) : (
+                            <>
+                                <Edit3 className="w-4 h-4" />
+                                Edit
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
@@ -387,27 +413,38 @@ Write the complete article now with image prompts included.`;
 
                     <div className="h-px bg-[var(--color-border)] mb-6" />
 
-                    {/* Article Content - Rendered Markdown */}
-                    <div className="prose prose-invert max-w-none min-h-[60vh]">
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                                h1: ({ children }) => <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4 mt-6">{children}</h1>,
-                                h2: ({ children }) => <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-3 mt-5">{children}</h2>,
-                                h3: ({ children }) => <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2 mt-4">{children}</h3>,
-                                p: ({ children }) => <p className="text-[var(--color-text-primary)] mb-4 leading-relaxed">{children}</p>,
-                                strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
-                                em: ({ children }) => <em className="italic text-[var(--color-text-secondary)]">{children}</em>,
-                                ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1 text-[var(--color-text-primary)]">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1 text-[var(--color-text-primary)]">{children}</ol>,
-                                li: ({ children }) => <li className="text-[var(--color-text-primary)]">{children}</li>,
-                                blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-[var(--color-text-secondary)] my-4">{children}</blockquote>,
-                                code: ({ children }) => <code className="bg-[var(--color-card)] px-1.5 py-0.5 rounded text-sm font-mono text-blue-400">{children}</code>,
-                                pre: ({ children }) => <pre className="bg-[var(--color-card)] p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
-                            }}
-                        >
-                            {content || 'Your article content will appear here...'}
-                        </ReactMarkdown>
+                    {/* Article Content - Rendered Markdown or Editor */}
+                    <div className="min-h-[60vh]">
+                        {isEditing ? (
+                            <textarea
+                                value={content}
+                                onChange={(e) => onUpdateArticle({ content: e.target.value })}
+                                className="w-full h-[70vh] bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] p-6 rounded-xl border border-[var(--color-border)] font-mono text-sm leading-relaxed focus:outline-none focus:border-[var(--color-accent)] resize-none"
+                                placeholder="Start writing..."
+                            />
+                        ) : (
+                            <div className="prose prose-invert max-w-none">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        h1: ({ children }) => <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4 mt-6">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-3 mt-5">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2 mt-4">{children}</h3>,
+                                        p: ({ children }) => <p className="text-[var(--color-text-primary)] mb-4 leading-relaxed">{children}</p>,
+                                        strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+                                        em: ({ children }) => <em className="italic text-[var(--color-text-secondary)]">{children}</em>,
+                                        ul: ({ children }) => <ul className="list-disc list-inside mb-4 space-y-1 text-[var(--color-text-primary)]">{children}</ul>,
+                                        ol: ({ children }) => <ol className="list-decimal list-inside mb-4 space-y-1 text-[var(--color-text-primary)]">{children}</ol>,
+                                        li: ({ children }) => <li className="text-[var(--color-text-primary)]">{children}</li>,
+                                        blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-500 pl-4 italic text-[var(--color-text-secondary)] my-4">{children}</blockquote>,
+                                        code: ({ children }) => <code className="bg-[var(--color-card)] px-1.5 py-0.5 rounded text-sm font-mono text-blue-400">{children}</code>,
+                                        pre: ({ children }) => <pre className="bg-[var(--color-card)] p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>,
+                                    }}
+                                >
+                                    {content || 'Your article content will appear here...'}
+                                </ReactMarkdown>
+                            </div>
+                        )}
                     </div>
 
                     {isGenerating && (
