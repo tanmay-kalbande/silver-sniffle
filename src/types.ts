@@ -1,5 +1,5 @@
 // ============================================================================
-// TYPES - Article Generator
+// TYPES - Article Generator with Templates
 // ============================================================================
 
 // AI Models (including Gemma 3 27B)
@@ -23,8 +23,18 @@ export interface Article {
     topic?: string;
     tone?: string;
     length?: string;
+    template?: string; // New: track which template was used
     createdAt: Date;
     updatedAt: Date;
+}
+
+// Article Template for structured generation
+export interface ArticleTemplate {
+    id: string;
+    name: string;
+    description: string;
+    structure: string;
+    promptSuffix: string;
 }
 
 // Memory for AI context
