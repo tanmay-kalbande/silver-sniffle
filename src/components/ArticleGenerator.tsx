@@ -9,7 +9,6 @@ import remarkGfm from 'remark-gfm';
 import { Article, Memory, WritingExample } from '../types';
 import { calculateReadingTime, countWords } from '../utils/helpers';
 import { aiService } from '../services/aiService';
-import { GenerationProgressPanel } from './GenerationProgressPanel';
 
 interface ArticleGeneratorProps {
     article: Article | null;
@@ -48,7 +47,6 @@ export function ArticleGenerator({
     const [isGenerating, setIsGenerating] = useState(false);
     const [streamedContent, setStreamedContent] = useState('');
     const [copied, setCopied] = useState(false);
-    const [generationStartTime, setGenerationStartTime] = useState<Date | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll during generation
@@ -71,7 +69,6 @@ export function ArticleGenerator({
 
         setIsGenerating(true);
         setStreamedContent('');
-        setGenerationStartTime(new Date());
 
         let memoryContext = '';
         if (memories.length > 0) {
@@ -333,41 +330,7 @@ Write the complete article now with image prompts included.`;
                             )}
                         </button>
                     </div>
-
-                    {/* Features Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
-                            <div className="text-2xl mb-2">✍️</div>
-                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Human-like Writing</div>
-                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">No AI patterns</div>
-                        </div>
-
-                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
-                            <div className="text-2xl mb-2">🧠</div>
-                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Memory Context</div>
-                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">Personalized content</div>
-                        </div>
-
-                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
-                            <div className="text-2xl mb-2">🎨</div>
-                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Style Matching</div>
-                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">Match your voice</div>
-                        </div>
-
-                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-bg-secondary)] transition-colors">
-                            <div className="text-2xl mb-2">⚡</div>
-                            <div className="text-sm font-semibold text-[var(--color-text-primary)]">Fast Generation</div>
-                            <div className="text-xs text-[var(--color-text-secondary)] mt-1">Real-time streaming</div>
-                        </div>
-                    </div>
                 </div>
-
-                {/* Progress Panel in Welcome Screen */}
-                <GenerationProgressPanel
-                    isGenerating={isGenerating}
-                    streamedContent={streamedContent}
-                    startTime={generationStartTime}
-                />
             </div>
         );
     }
@@ -455,13 +418,6 @@ Write the complete article now with image prompts included.`;
                     )}
                 </div>
             </div>
-
-            {/* Floating Generation Progress Panel */}
-            <GenerationProgressPanel
-                isGenerating={isGenerating}
-                streamedContent={streamedContent}
-                startTime={generationStartTime}
-            />
         </div>
     );
 }
