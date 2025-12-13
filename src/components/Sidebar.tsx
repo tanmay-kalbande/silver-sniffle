@@ -1,5 +1,5 @@
 // ============================================================================
-// SIDEBAR - Clean Design (no model selector - it's in settings)
+// SIDEBAR - With Article Scores
 // ============================================================================
 
 import { useState, useMemo } from 'react';
@@ -15,9 +15,10 @@ import {
     ChevronLeft,
     ChevronRight,
     Search,
+    Star,
 } from 'lucide-react';
 import { Article, AppView } from '../types';
-import { formatDate } from '../utils/helpers';
+import { formatDate, countWords } from '../utils/helpers';
 
 interface SidebarProps {
     articles: Article[];
@@ -32,6 +33,40 @@ interface SidebarProps {
     onOpenSettings: () => void;
     onClose: () => void;
     onToggleFold: () => void;
+}
+
+// Calculate article score based on content quality indicators
+function calculateScore(article: Article): number {
+    if (!article.content) return 0;
+
+    const words = countWords(article.content);
+    const hasHeadings = (article.content.match(/^#{1,3}\s/gm) || []).length;
+    const hasParagraphs = (article.content.match(/\n\n/g) || []).length;
+    const hasTitle = article.title.length > 10;
+    const hasSubtitle = article.subtitle.length > 0;
+
+    let score = 1; // Base score
+    if (words > 200) score += 1;
+    if (words > 500) score += 1;
+    if (words > 1000) score += 1;
+    if (hasHeadings > 2) score += 0.5;
+    if (hasParagraphs > 3) score += 0.5;
+    if (hasTitle) score += 0.5;
+    if (hasSubtitle) score += 0.5;
+
+    return Math.min(5, Math.round(score * 10) / 10);
+}
+
+// Generate title if empty
+function getDisplayTitle(article: Article): string {
+    if (article.title) return article.title;
+    if (article.content) {
+        // Get first line or first 50 chars
+        const firstLine = article.content.split('\n')[0].replace(/^#+ /, '').trim();
+        if (firstLine.length > 50) return firstLine.slice(0, 47) + '...';
+        if (firstLine) return firstLine;
+    }
+    return 'Untitled';
 }
 
 export function Sidebar({
@@ -132,46 +167,63 @@ export function Sidebar({
                     </div>
                 ) : (
                     <div className="space-y-1">
-                        {filteredArticles.map((article) => (
-                            <div
-                                key={article.id}
-                                onClick={() => onSelectArticle(article)}
-                                onMouseEnter={() => setHoveredId(article.id)}
-                                onMouseLeave={() => setHoveredId(null)}
-                                className={`group relative flex items-center gap-2 ${isFolded ? 'justify-center p-2.5' : 'p-2.5'} rounded-lg cursor-pointer transition-colors ${currentArticle?.id === article.id
-                                    ? 'bg-white/10 text-[var(--color-text-primary)]'
-                                    : 'hover:bg-white/5 text-[var(--color-text-primary)]'
-                                    }`}
-                                title={article.title || 'Untitled'}
-                            >
-                                {isFolded ? (
-                                    <FileText className="w-5 h-5" />
-                                ) : (
-                                    <>
-                                        <FileText className="w-4 h-4 flex-shrink-0" />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">
-                                                {article.title || 'Untitled'}
-                                            </p>
-                                            <p className="text-xs text-[var(--color-text-muted)] truncate">
-                                                {formatDate(article.updatedAt)}
-                                            </p>
-                                        </div>
-                                        {hoveredId === article.id && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onDeleteArticle(article.id);
-                                                }}
-                                                className="p-1 rounded hover:bg-red-500/20 text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        ))}
+                        {filteredArticles.map((article) => {
+                            const score = calculateScore(article);
+                            const displayTitle = getDisplayTitle(article);
+
+                            return (
+                                <div
+                                    key={article.id}
+                                    onClick={() => onSelectArticle(article)}
+                                    onMouseEnter={() => setHoveredId(article.id)}
+                                    onMouseLeave={() => setHoveredId(null)}
+                                    className={`group relative flex items-center gap-2 ${isFolded ? 'justify-center p-2.5' : 'p-2.5'} rounded-lg cursor-pointer transition-colors ${currentArticle?.id === article.id
+                                            ? 'bg-white/10 text-[var(--color-text-primary)]'
+                                            : 'hover:bg-white/5 text-[var(--color-text-primary)]'
+                                        }`}
+                                    title={displayTitle}
+                                >
+                                    {isFolded ? (
+                                        <FileText className="w-5 h-5" />
+                                    ) : (
+                                        <>
+                                            <FileText className="w-4 h-4 flex-shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-sm font-medium truncate flex-1">
+                                                        {displayTitle}
+                                                    </p>
+                                                    {/* Score Badge */}
+                                                    {score > 0 && (
+                                                        <span className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded ${score >= 4 ? 'bg-green-500/20 text-green-400' :
+                                                                score >= 2.5 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                    'bg-gray-500/20 text-gray-400'
+                                                            }`}>
+                                                            <Star className="w-3 h-3" />
+                                                            {score}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-[var(--color-text-muted)] truncate">
+                                                    {formatDate(article.updatedAt)}
+                                                </p>
+                                            </div>
+                                            {hoveredId === article.id && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onDeleteArticle(article.id);
+                                                    }}
+                                                    className="p-1 rounded hover:bg-red-500/20 text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -182,8 +234,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('generator')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'generator'
-                            ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
-                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
+                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Generator"
                     >
@@ -193,8 +245,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('memories')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'memories'
-                            ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
-                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
+                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Memory"
                     >
@@ -204,8 +256,8 @@ export function Sidebar({
                     <button
                         onClick={() => onChangeView('examples')}
                         className={`flex flex-col items-center gap-1 p-2 rounded-lg w-full transition-colors ${currentView === 'examples'
-                            ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
-                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
+                                ? 'text-[var(--color-text-primary)] bg-[var(--color-card)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-card)]'
                             }`}
                         title="Examples"
                     >
