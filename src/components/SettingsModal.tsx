@@ -1,5 +1,5 @@
 // ============================================================================
-// SETTINGS MODAL - Compact with Tabs (API Keys & Model only)
+// SETTINGS MODAL - Compact with Tabs (API Keys & Model)
 // ============================================================================
 
 import { useState } from 'react';
@@ -18,6 +18,7 @@ type SettingsTab = 'keys' | 'model';
 const models: { id: AIModel; name: string; provider: string }[] = [
     { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
     { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
+    { id: 'gemma-3-27b-it', name: 'Gemma 3 27B', provider: 'Google' },
     { id: 'gpt-oss-120b', name: 'GPT OSS 120B', provider: 'Cerebras' },
     { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral' },
     { id: 'mistral-medium-latest', name: 'Mistral Medium', provider: 'Mistral' },
@@ -92,7 +93,7 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
                                             href={field.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-xs text-[var(--color-text-muted)] hover:text-white flex items-center gap-1"
+                                            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] flex items-center gap-1 transition-colors"
                                         >
                                             Get key <ExternalLink className="w-3 h-3" />
                                         </a>
@@ -125,12 +126,12 @@ export function SettingsModal({ isOpen, settings, onSave, onClose }: SettingsMod
                                     key={model.id}
                                     onClick={() => setLocalSettings((s) => ({ ...s, selectedModel: model.id }))}
                                     className={`w-full p-3 rounded-lg text-left transition-all flex items-center justify-between ${localSettings.selectedModel === model.id
-                                            ? 'bg-white text-black'
+                                            ? 'bg-[var(--color-accent)] text-[var(--color-accent-text)]'
                                             : 'bg-[var(--color-card)] border border-[var(--color-border)] hover:border-white/20'
                                         }`}
                                 >
                                     <span className="font-medium text-sm">{model.name}</span>
-                                    <span className={`text-xs ${localSettings.selectedModel === model.id ? 'text-black/60' : 'text-[var(--color-text-muted)]'
+                                    <span className={`text-xs ${localSettings.selectedModel === model.id ? 'opacity-70' : 'text-[var(--color-text-muted)]'
                                         }`}>{model.provider}</span>
                                 </button>
                             ))}
